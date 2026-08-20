@@ -1133,12 +1133,8 @@ export default function App() {
     }
   }, [])
 
-  // 2. Atualiza o horário de atividade com cliques e toques
+// 2. Atualiza o horário de atividade com cliques e toques
   useEffect(() => {
-  if (!isLoggedIn) {
-    return <AuthScreen onLogin={handleLoginSuccess} />
-  }
-
     const updateActivity = () => {
       localStorage.setItem('@app_last_activity', Date.now().toString())
     }
@@ -1152,7 +1148,7 @@ export default function App() {
       window.removeEventListener('touchstart', updateActivity)
       window.removeEventListener('keydown', updateActivity)
     }
-  }, [isLoggedIn])
+  }, [])
 
   // 3. Gerencia evento de Voltar do Aparelho
   useEffect(() => {
@@ -1172,7 +1168,7 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [tabHistory, selectedCoin])
 
-// Troca de abas direta sem disparar recarregamento
+  // Troca de abas direta sem disparar recarregamento
   const handleTabChange = useCallback((newTab: Tab) => {
     setIsEditingProfile(false)
     if (newTab !== activeTab) {
@@ -1181,7 +1177,7 @@ export default function App() {
     }
   }, [activeTab])
 
-// Salva alterações do perfil no Supabase e no estado local
+  // Salva alterações do perfil no Supabase e no estado local
   const handleSaveProfile = useCallback(async (updatedProfile: UserProfile) => {
     setUserProfile(updatedProfile)
     setIsEditingProfile(false)
@@ -1220,117 +1216,112 @@ export default function App() {
     }
   }, [tabHistory, selectedCoin])
 
-// Atualiza o status (possuída, desejada, quantidade) com trava de coleção ativa
-const handleUpdateStatus = useCallback(async (coinId: string, status: CoinStatus | null, quantity: number = 1) => {
-  // Se o usuário estiver tentando adicionar (status não nulo), validamos o país da moeda
-  if (status) {
-    const coinData = ALL_COINS.find(c => String(c.id) === String(coinId))
-    
-    if (coinData) {
-      // Pega as coleções ativas cadastradas no perfil
-      const userActiveCollections: string[] =
-        (userProfile as any)?.selectedCountries ||
-        userProfile?.selectedCollections ||
-        ['Brasil']
+  // 6. Atualiza status da moeda
+  const handleUpdateStatus = useCallback(async (coinId: string, status: CoinStatus | null, quantity: number = 1) => {
+    if (status) {
+      const coinData = ALL_COINS.find(c => String(c.id) === String(coinId))
+      
+      if (coinData) {
+        const userActiveCollections: string[] =
+          (userProfile as any)?.selectedCountries ||
+          (userProfile as any)?.selectedCollections ||
+          ['Brasil']
 
-      // Normaliza para comparar sem erro de acentos e maiúsculas
-      const normalize = (txt: any = '') =>
-        String(txt || '')
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .trim()
-          .toLowerCase()
+        const normalize = (txt: any = '') =>
+          String(txt || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase()
 
-      const coinCountryNorm = normalize(coinData.country)
-      const isAllowed = userActiveCollections.some(
-        country => normalize(country) === coinCountryNorm
-      )
-
-      if (!isAllowed) {
-        alert(
-          `Você não pode adicionar esta moeda porque a coleção "${coinData.country}" não está ativa no seu perfil.\n\nVá em "Perfil > Editar Perfil" para ativá-la primeiro.`
+        const coinCountryNorm = normalize(coinData.country)
+        const isAllowed = userActiveCollections.some(
+          country => normalize(country) === coinCountryNorm
         )
-        return
+
+        if (!isAllowed) {
+          alert(
+            `Você não pode adicionar esta moeda porque a coleção "${coinData.country}" não está ativa no seu perfil.\n\nVá em "Perfil > Editar Perfil" para ativá-la primeiro.`
+          )
+          return
+        }
       }
     }
-  }
 
-  setUserCoins(prev => {
-    let updated: Record<string, UserCoin>;
+    setUserCoins(prev => {
+      let updated: Record<string, UserCoin>
 
-    if (!status) {
-      const next = { ...prev };
-      delete next[coinId];
-      updated = next;
-    } else {
-      updated = {
-        ...prev,
-        [coinId]: {
-          ...(prev[coinId] ?? { coinId, favorite: false }),
-          status,
-          quantity: status === 'owned' ? quantity : 0,
-        },
-      };
-    }
-
-    // Salva na nuvem (Supabase) de forma assíncrona
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.id) {
-        supabase
-          .from('user_coins')
-          .upsert({ 
-            user_id: session.user.id, 
-            coins: updated, 
-            updated_at: new Date().toISOString() 
-          })
-          .then(({ error }) => {
-            if (error) console.error('Erro ao salvar moedas no Supabase:', error);
-          });
+      if (!status) {
+        const next = { ...prev }
+        delete next[coinId]
+        updated = next
+      } else {
+        updated = {
+          ...prev,
+          [coinId]: {
+            ...(prev[coinId] ?? { coinId, favorite: false }),
+            status,
+            quantity: status === 'owned' ? quantity : 0,
+          },
+        }
       }
-    });
 
-    return updated;
-  });
-}, [userProfile]);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.id) {
+          supabase
+            .from('user_coins')
+            .upsert({ 
+              user_id: session.user.id, 
+              coins: updated, 
+              updated_at: new Date().toISOString() 
+            })
+            .then(({ error }) => {
+              if (error) console.error('Erro ao salvar moedas no Supabase:', error)
+            })
+        }
+      })
 
-// Alterna o estado de favorita na moeda
-const handleToggleFavorite = useCallback((coinId: string) => {
-  setUserCoins(prev => {
-    const existing = prev[coinId];
-    let updated: Record<string, UserCoin>;
+      return updated
+    })
+  }, [userProfile])
 
-    if (existing) {
-      updated = { ...prev, [coinId]: { ...existing, favorite: !existing.favorite } };
-    } else {
-      updated = { ...prev, [coinId]: { coinId, status: 'wanted', favorite: true, quantity: 0 } };
-    }
+  // 7. Alterna o estado de favorita
+  const handleToggleFavorite = useCallback((coinId: string) => {
+    setUserCoins(prev => {
+      const existing = prev[coinId]
+      let updated: Record<string, UserCoin>
 
-    // Salva na nuvem (Supabase) de forma assíncrona
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.id) {
-        supabase
-          .from('user_coins')
-          .upsert({ 
-            user_id: session.user.id, 
-            coins: updated, 
-            updated_at: new Date().toISOString() 
-          })
-          .then(({ error }) => {
-            if (error) console.error('Erro ao salvar favoritos no Supabase:', error);
-          });
+      if (existing) {
+        updated = { ...prev, [coinId]: { ...existing, favorite: !existing.favorite } }
+      } else {
+        updated = { ...prev, [coinId]: { coinId, status: 'wanted', favorite: true, quantity: 0 } }
       }
-    });
 
-    return updated;
-  });
-}, []);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.id) {
+          supabase
+            .from('user_coins')
+            .upsert({ 
+              user_id: session.user.id, 
+              coins: updated, 
+              updated_at: new Date().toISOString() 
+            })
+            .then(({ error }) => {
+              if (error) console.error('Erro ao salvar favoritos no Supabase:', error)
+            })
+        }
+      })
+
+      return updated
+    })
+  }, [])
 
   const handleOpenCoinDetail = useCallback((coin: Coin) => {
     window.history.pushState({ modal: coin.id }, '')
     setSelectedCoin(coin)
   }, [])
 
-// Login bem-sucedido
+  // 8. Login bem-sucedido
   const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
     setUserProfile(profile)
     setActiveTab('home')
@@ -1343,7 +1334,6 @@ const handleToggleFavorite = useCallback((coinId: string) => {
 
       if (!userId) return
 
-      // Busca as moedas do usuário na tabela 'user_coins'
       const { data } = await supabase
         .from('user_coins')
         .select('coins')
@@ -1353,7 +1343,6 @@ const handleToggleFavorite = useCallback((coinId: string) => {
       if (data && data.coins) {
         setUserCoins(data.coins)
       } else {
-        // Conta nova: inicializa vazio
         await supabase
           .from('user_coins')
           .insert([{ user_id: userId, coins: {} }])
@@ -1366,7 +1355,7 @@ const handleToggleFavorite = useCallback((coinId: string) => {
     }
   }, [])
 
-// Logout definitivo limpando sessão e forçando tela de login
+  // 9. Logout definitivo
   const handleLogout = useCallback(async () => {
     try {
       await supabase.auth.signOut({ scope: 'local' })
@@ -1374,11 +1363,9 @@ const handleToggleFavorite = useCallback((coinId: string) => {
       console.error('Erro ao deslogar do Supabase:', err)
     }
 
-    // 1. Limpa o cache local
     localStorage.clear()
     sessionStorage.clear()
 
-    // 2. Reseta os estados e derruba o login imediatamente
     setIsLoggedIn(false)
     setUserProfile(null)
     setUserCoins({})
@@ -1387,15 +1374,10 @@ const handleToggleFavorite = useCallback((coinId: string) => {
     setTabHistory(['home'])
   }, [])
 
-    // Limpa todas as chaves salvas no navegador
-    localStorage.clear()
-    sessionStorage.clear()
-
-    setUserProfile(null)
-    setUserCoins({})
-    setIsLoggedIn(false)
-    setActiveTab('home')
-  }, [])
+  // 10. Trava de Renderização: se não estiver logado, exibe AuthScreen
+  if (!isLoggedIn) {
+    return <AuthScreen onLogin={handleLoginSuccess} />
+  }
 
   const screens: Record<Tab, React.ReactNode> = {
     home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
