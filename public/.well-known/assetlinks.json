@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.pataca_app.twa",
+        "sha256_cert_fingerprints": ["E3:08:91:5A:C8:D1:52:71:E4:77:C3:35:F9:5D:F1:9C:B3:9E:D5:D6:6C:B7:04:6F:31:CC:AE:2D:1B:7D:AE:3C"]
+      }
+    }]
