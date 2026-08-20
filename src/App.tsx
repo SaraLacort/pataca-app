@@ -1364,19 +1364,23 @@ const handleToggleFavorite = useCallback((coinId: string) => {
     }
   }, [])
 
-  // 8. Logout
+// 8. Logout completo
   const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut() // Encerra sessão no Supabase
-    localStorage.removeItem('@app_session')
-    localStorage.removeItem('@app_last_activity')
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Erro ao deslogar:', err)
+    }
+
+    // Limpa todas as chaves salvas no navegador
+    localStorage.clear()
+    sessionStorage.clear()
+
     setUserProfile(null)
     setUserCoins({})
     setIsLoggedIn(false)
+    setActiveTab('home')
   }, [])
-
-  if (!isLoggedIn) {
-    return <AuthScreen onLogin={handleLoginSuccess} />
-  }
 
   const screens: Record<Tab, React.ReactNode> = {
     home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
