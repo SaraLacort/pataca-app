@@ -960,13 +960,7 @@ const ALL_COUNTRIES = Array.from(
   new Set(ALL_COINS.map(c => c.country).filter(Boolean))
 ).sort()
 
-const DEFAULT_COINS: Record<string, UserCoin> = {
-  r01: { coinId: 'r01', status: 'owned', favorite: false, quantity: 1, condition: 'Muito Bem Conservada' },
-  r04: { coinId: 'r04', status: 'owned', favorite: true, quantity: 1, condition: 'Soberba' },
-  r14: { coinId: 'r14', status: 'owned', favorite: true, quantity: 1, condition: 'Flor de Cunho', paidValue: 8.5 },
-  r17: { coinId: 'r17', status: 'wanted', favorite: true, quantity: 0 }
-}
-
+const DEFAULT_COINS: Record<string, UserCoin> = {}
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getMaterialGradient(material: string): string {
@@ -1334,43 +1328,42 @@ const handleToggleFavorite = useCallback((coinId: string) => {
     setSelectedCoin(coin)
   }, [])
 
-  // 7. Login bem-sucedido
-const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
-  localStorage.setItem('@app_last_activity', Date.now().toString());
-  setUserProfile(profile);
-  setActiveTab('home');
-  setTabHistory(['home']);
-  setIsLoggedIn(true);
+// Login bem-sucedido
+  const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
+    setUserProfile(profile)
+    setActiveTab('home')
+    setTabHistory(['home'])
+    setIsLoggedIn(true)
 
-  try {
-    // 1. Pega o ID do usuário logado na sessão ativa do Supabase
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const userId = session?.user?.id
 
-    if (!userId) return;
+      if (!userId) return
 
-    // 2. Busca a coleção de moedas na tabela 'user_coins'
-    const { data, error } = await supabase
-      .from('user_coins')
-      .select('coins')
-      .eq('user_id', userId)
-      .single();
-
-    if (data && data.coins) {
-      setUserCoins(data.coins);
-    } else {
-      // Se for o primeiro acesso, cria o registro padrão na nuvem
-      await supabase
+      // Busca as moedas do usuário na tabela 'user_coins'
+      const { data } = await supabase
         .from('user_coins')
-        .insert([{ user_id: userId, coins: DEFAULT_COINS }]);
+        .select('coins')
+        .eq('user_id', userId)
+        .single()
 
-      setUserCoins(DEFAULT_COINS);
+      if (data && data.coins) {
+        setUserCoins(data.coins)
+      } else {
+        // Conta nova: inicializa vazio
+        await supabase
+          .from('user_coins')
+          .insert([{ user_id: userId, coins: {} }])
+
+        setUserCoins({})
+      }
+    } catch (err) {
+      console.error('Erro ao carregar moedas:', err)
+      setUserCoins({})
     }
-  } catch (err) {
-    console.error('Erro ao carregar moedas do Supabase:', err);
-    setUserCoins(DEFAULT_COINS);
-  }
-}, []);
+  }, [])
+
   // 8. Logout
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut() // Encerra sessão no Supabase
