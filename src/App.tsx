@@ -1135,7 +1135,9 @@ export default function App() {
 
   // 2. Atualiza o horário de atividade com cliques e toques
   useEffect(() => {
-    if (!isLoggedIn) return
+  if (!isLoggedIn) {
+    return <AuthScreen onLogin={handleLoginSuccess} />
+  }
 
     const updateActivity = () => {
       localStorage.setItem('@app_last_activity', Date.now().toString())
@@ -1364,13 +1366,26 @@ const handleToggleFavorite = useCallback((coinId: string) => {
     }
   }, [])
 
-// 8. Logout completo
+// Logout definitivo limpando sessão e forçando tela de login
   const handleLogout = useCallback(async () => {
     try {
-      await supabase.auth.signOut()
+      await supabase.auth.signOut({ scope: 'local' })
     } catch (err) {
-      console.error('Erro ao deslogar:', err)
+      console.error('Erro ao deslogar do Supabase:', err)
     }
+
+    // 1. Limpa o cache local
+    localStorage.clear()
+    sessionStorage.clear()
+
+    // 2. Reseta os estados e derruba o login imediatamente
+    setIsLoggedIn(false)
+    setUserProfile(null)
+    setUserCoins({})
+    setIsEditingProfile(false)
+    setActiveTab('home')
+    setTabHistory(['home'])
+  }, [])
 
     // Limpa todas as chaves salvas no navegador
     localStorage.clear()

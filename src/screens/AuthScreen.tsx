@@ -47,12 +47,13 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
         return
       }
 
-      // Cadastra usuário no Supabase e grava o Nome no metadata do perfil
+    // Cadastra usuário no Supabase e grava o Nome no metadata do perfil
       const { data, error } = await supabase.auth.signUp({
         email: lowerEmail,
         password: password,
         options: {
           data: {
+            name: name.trim(),
             full_name: name.trim(),
           },
         },
@@ -64,7 +65,7 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
         return
       }
 
-      const userName = data.user?.user_metadata?.full_name || name.trim()
+      const userName = name.trim()
       const userProfile = { name: userName, email: lowerEmail }
 
       alert('Conta criada com sucesso!')
