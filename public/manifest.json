@@ -1,0 +1,21 @@
+{
+  "short_name": "Pataca",
+  "name": "Pataca - Coleção Numismática",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0c0c0e",
+  "theme_color": "#0c0c0e",
+  "display": "standalone",
+  "orientation": "portrait"
+}
