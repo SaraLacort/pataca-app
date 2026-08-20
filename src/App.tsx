@@ -1064,60 +1064,86 @@ export default function App() {
   const [userCoins, setUserCoins] = useState<Record<string, UserCoin>>({})
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true) // <-- Trava inicial
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [showExportPage, setShowExportPage] = useState(false)
 
-  
-
-// Carrega e valida a sessão direto no Supabase
+  // 1. Carrega e valida sessão rigorosamente antes de abrir qualquer tela
   useEffect(() => {
-    const loadSessionAndUser = async () => {
+    let isMounted = true
+
+    const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
 
         if (!session?.user) {
-          setIsLoggedIn(false)
-          setUserProfile(null)
+          if (isMounted) {
+            setIsLoggedIn(false)
+            setUserProfile(null)
+            setUserCoins({})
+            setIsAuthChecking(false)
+          }
           return
         }
 
-        // Se tem usuário logado, ativa o login e busca os dados
-        setIsLoggedIn(true)
-
+        // Busca o perfil salvo
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single()
 
-        if (profileData) {
-          const formattedProfile: UserProfile = {
-            name: profileData.name || 'Colecionador',
-            email: profileData.email || session.user.email || '',
-            avatar: profileData.avatar || '/avatars/avatar-01.png',
-            instagram: profileData.instagram || '',
-            selectedCountries: profileData.selected_countries || ['Brasil'],
+        if (isMounted) {
+          if (profileData) {
+            setUserProfile({
+              name: profileData.name || '',
+              email: profileData.email || session.user.email || '',
+              avatar: profileData.avatar || '/avatars/avatar-01.png',
+              instagram: profileData.instagram || '',
+              selectedCountries: profileData.selected_countries || ['Brasil'],
+            })
           }
-          setUserProfile(formattedProfile)
-        }
 
-        // Busca moedas salvas
-        const { data: coinsData } = await supabase
-          .from('user_coins')
-          .select('coins')
-          .eq('user_id', session.user.id)
-          .single()
+          // Busca moedas salvas
+          const { data: coinsData } = await supabase
+            .from('user_coins')
+            .select('coins')
+            .eq('user_id', session.user.id)
+            .single()
 
-        if (coinsData?.coins) {
-          setUserCoins(coinsData.coins)
+          if (coinsData?.coins) {
+            setUserCoins(coinsData.coins)
+          }
+
+          setIsLoggedIn(true)
+          setIsAuthChecking(false)
         }
       } catch (err) {
-        console.error('Erro ao verificar sessão:', err)
-        setIsLoggedIn(false)
+        console.error('Erro na checagem de sessão:', err)
+        if (isMounted) {
+          setIsLoggedIn(false)
+          setIsAuthChecking(false)
+        }
       }
     }
 
-    loadSessionAndUser()
+    checkSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsLoggedIn(true)
+      } else {
+        setIsLoggedIn(false)
+        setUserProfile(null)
+        setUserCoins({})
+      }
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
@@ -1378,6 +1404,32 @@ export default function App() {
   if (!isLoggedIn) {
     return <AuthScreen onLogin={handleLoginSuccess} />
   }
+
+  // Se ainda estiver verificando a sessão no Supabase, mostra tela de espera
+  if (isAuthChecking) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100dvh',
+          background: '#0c0c0e',
+          color: '#d4af37',
+          fontFamily: "'Roboto Slab', serif",
+          fontSize: 20,
+        }}
+      >
+        Pataca...
+      </div>
+    )
+  }
+
+  // Se não estiver logado, exibe direto o Login
+  if (!isLoggedIn) {
+    return <AuthScreen onLogin={handleLoginSuccess} />
+  }
+
 
   const screens: Record<Tab, React.ReactNode> = {
     home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
