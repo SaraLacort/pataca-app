@@ -1075,81 +1075,67 @@ export default function App() {
 
   
 
-// ─── Carrega Sessão, Perfil e Moedas da Nuvem (Supabase) ────────────────────
+// Carrega e valida a sessão direto no Supabase
   useEffect(() => {
-    // 1. Restaura cache local instantâneo
-    const session = localStorage.getItem('@app_session')
-    if (session) {
+    const loadSessionAndUser = async () => {
       try {
-        const parsed: UserProfile = JSON.parse(session)
-        setUserProfile(parsed)
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!session?.user) {
+          setIsLoggedIn(false)
+          setUserProfile(null)
+          return
+        }
+
+        // Se tem usuário logado, ativa o login e busca os dados
         setIsLoggedIn(true)
 
-        const userCoinsKey = `@app_coins_${parsed.email}`
-        const savedCoins = localStorage.getItem(userCoinsKey)
-        if (savedCoins) {
-          setUserCoins(JSON.parse(savedCoins))
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profileData) {
+          const formattedProfile: UserProfile = {
+            name: profileData.name || 'Colecionador',
+            email: profileData.email || session.user.email || '',
+            avatar: profileData.avatar || '/avatars/avatar-01.png',
+            instagram: profileData.instagram || '',
+            selectedCountries: profileData.selected_countries || ['Brasil'],
+          }
+          setUserProfile(formattedProfile)
+        }
+
+        // Busca moedas salvas
+        const { data: coinsData } = await supabase
+          .from('user_coins')
+          .select('coins')
+          .eq('user_id', session.user.id)
+          .single()
+
+        if (coinsData?.coins) {
+          setUserCoins(coinsData.coins)
         }
       } catch (err) {
-        console.error('Erro ao ler cache de sessão', err)
+        console.error('Erro ao verificar sessão:', err)
+        setIsLoggedIn(false)
       }
     }
 
-    // 2. Função isolada e segura para buscar dados no Supabase
-    const loadCloudData = async () => {
-      try {
-        const sessionRes = await supabase.auth.getSession()
-        const supaUser = sessionRes.data?.session?.user
+    loadSessionAndUser()
 
-        if (supaUser) {
-          setIsLoggedIn(true)
-
-          // Busca perfil
-          const profileRes = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', supaUser.id)
-            .single()
-
-          if (profileRes.data) {
-            const formattedProfile: UserProfile = {
-              name: profileRes.data.name || 'Colecionador',
-              email: profileRes.data.email || supaUser.email || '',
-              avatar: profileRes.data.avatar || '/avatars/avatar-01.png',
-              instagram: profileRes.data.instagram || '',
-              selectedCountries: profileRes.data.selected_countries || ['Brasil'],
-            }
-            setUserProfile(formattedProfile)
-            localStorage.setItem('@app_session', JSON.stringify(formattedProfile))
-          }
-
-          // Busca moedas
-          const coinsRes = await supabase
-            .from('user_coins')
-            .select('coins')
-            .eq('user_id', supaUser.id)
-            .single()
-
-          if (coinsRes.data?.coins) {
-            setUserCoins(coinsRes.data.coins)
-          }
-        }
-      } catch (e) {
-        console.error('Erro ao carregar dados do Supabase', e)
-      }
-    }
-
-    loadCloudData()
-
-    // 3. Ouve mudanças de login / renovação
-    const authListener = supabase.auth.onAuthStateChange((_event, supaSession) => {
-      if (supaSession?.user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
         setIsLoggedIn(true)
+      } else {
+        setIsLoggedIn(false)
+        setUserProfile(null)
       }
     })
 
     return () => {
-      authListener.data.subscription.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [])
 
