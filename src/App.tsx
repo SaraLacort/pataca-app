@@ -1381,7 +1381,7 @@ export default function App() {
     }
   }, [])
 
-  // 9. Logout definitivo
+ // 9. Logout definitivo
   const handleLogout = useCallback(async () => {
     try {
       await supabase.auth.signOut({ scope: 'local' })
@@ -1399,6 +1399,7 @@ export default function App() {
     setActiveTab('home')
     setTabHistory(['home'])
   }, [])
+
 
   // 10. Telas do App (declaradas antes de qualquer return)
   const screens: Record<Tab, React.ReactNode> = {
@@ -1449,29 +1450,6 @@ export default function App() {
   }
 
   
-  const screens: Record<Tab, React.ReactNode> = {
-    home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
-    catalog: <CatalogScreen userCoins={userCoins} onCoinClick={handleOpenCoinDetail} onUpdateStatus={handleUpdateStatus} />,
-    collection: <CollectionScreen userCoins={userCoins} userProfile={userProfile} onCoinClick={handleOpenCoinDetail} />,
-    stats: <RankingScreen userCoins={userCoins} userProfile={userProfile} />,
-profile: isEditingProfile ? (
-      <EditProfileScreen
-        profile={userProfile}
-        userProfile={userProfile}
-        userCoins={userCoins}
-        onSave={handleSaveProfile}
-        onCancel={() => setIsEditingProfile(false)}
-      />
-    ) : (
-      <ProfileScreen
-        userCoins={userCoins}
-        userProfile={userProfile}
-        onLogout={handleLogout}
-        onEditProfile={() => setIsEditingProfile(true)}
-      />
-    ),
-  }
-
   return (
     <div
       style={{
