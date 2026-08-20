@@ -1,0 +1,27 @@
+// src/data/constants.ts
+
+export const MONETARY_PLANS = [
+  'Todos',
+  'Real',
+  'Cruzeiro',
+  'Cruzeiro Novo',
+  'Cruzeiro Real',
+  'Cruzado Novo',
+  'Réis',
+  'Cruzado',
+  'Dólar Americano',
+  'Dólar Canadense',
+  'Real Mexicano',
+  'Peso Mexicano',
+  'Nuevo Peso / Peso Mexicano',
+  'Nuevo Peso',
+  'Primeiro Peso Dominicano',
+  'Franco Dominicano',
+  'Peso Oro',
+  'Peso Dominicano',
+  'Real Colombiano',
+  'Peso Colombiano',
+  'Primeiro Peso Chileno',
+  'Escudo',
+  'Segundo Peso Chileno',
+]

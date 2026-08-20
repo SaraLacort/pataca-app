@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+:root {
+  --background: #0C0C0E;
+  --foreground: #F0F0F2;
+  --card: #16161A;
+  --card-foreground: #E8E8EC;
+  --primary: #4DA3FF;
+  --primary-foreground: #0C0C0E;
+  --secondary: #1E1E26;
+  --secondary-foreground: #A0A0B0;
+  --muted: #1A1A22;
+  --muted-foreground: #70708A;
+  --accent: #D4AF37;
+  --accent-foreground: #0C0C0E;
+  --border: rgba(255, 255, 255, 0.07);
+  --ring: #4DA3FF;
+  --radius: 16px;
+  --green: #4CAF50;
+  --red: #EF5350;
+  --amber: #FFB300;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-default: var(--radius);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Roboto Slab', Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}
