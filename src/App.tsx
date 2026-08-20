@@ -1347,7 +1347,7 @@ export default function App() {
     setSelectedCoin(coin)
   }, [])
 
-  // 8. Login bem-sucedido
+// 8. Login bem-sucedido
   const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
     setUserProfile(profile)
     setActiveTab('home')
@@ -1400,12 +1400,31 @@ export default function App() {
     setTabHistory(['home'])
   }, [])
 
-  // 10. Trava de Renderização: se não estiver logado, exibe AuthScreen
-  if (!isLoggedIn) {
-    return <AuthScreen onLogin={handleLoginSuccess} />
+  // 10. Telas do App (declaradas antes de qualquer return)
+  const screens: Record<Tab, React.ReactNode> = {
+    home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
+    catalog: <CatalogScreen userCoins={userCoins} onCoinClick={handleOpenCoinDetail} onUpdateStatus={handleUpdateStatus} />,
+    collection: <CollectionScreen userCoins={userCoins} userProfile={userProfile} onCoinClick={handleOpenCoinDetail} />,
+    stats: <RankingScreen userCoins={userCoins} userProfile={userProfile} />,
+    profile: isEditingProfile ? (
+      <EditProfileScreen
+        profile={userProfile}
+        userProfile={userProfile}
+        userCoins={userCoins}
+        onSave={handleSaveProfile}
+        onCancel={() => setIsEditingProfile(false)}
+      />
+    ) : (
+      <ProfileScreen
+        userCoins={userCoins}
+        userProfile={userProfile}
+        onLogout={handleLogout}
+        onEditProfile={() => setIsEditingProfile(true)}
+      />
+    ),
   }
 
-  // Se ainda estiver verificando a sessão no Supabase, mostra tela de espera
+  // 11. Travas de tela (no final de tudo, antes do JSX principal)
   if (isAuthChecking) {
     return (
       <div
@@ -1425,12 +1444,11 @@ export default function App() {
     )
   }
 
-  // Se não estiver logado, exibe direto o Login
   if (!isLoggedIn) {
     return <AuthScreen onLogin={handleLoginSuccess} />
   }
 
-
+  
   const screens: Record<Tab, React.ReactNode> = {
     home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
     catalog: <CatalogScreen userCoins={userCoins} onCoinClick={handleOpenCoinDetail} onUpdateStatus={handleUpdateStatus} />,
