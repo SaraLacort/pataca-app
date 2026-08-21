@@ -1145,20 +1145,6 @@ export default function App() {
     }
   }, [])
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setIsLoggedIn(true)
-      } else {
-        setIsLoggedIn(false)
-        setUserProfile(null)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
 // 2. Atualiza o horário de atividade com cliques e toques
   useEffect(() => {
     const updateActivity = () => {
@@ -1347,7 +1333,7 @@ export default function App() {
     setSelectedCoin(coin)
   }, [])
 
-// 8. Login bem-sucedido
+// Login bem-sucedido
   const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
     setUserProfile(profile)
     setActiveTab('home')
@@ -1381,7 +1367,7 @@ export default function App() {
     }
   }, [])
 
- // 9. Logout definitivo
+  // Logout definitivo
   const handleLogout = useCallback(async () => {
     try {
       await supabase.auth.signOut({ scope: 'local' })
@@ -1399,7 +1385,6 @@ export default function App() {
     setActiveTab('home')
     setTabHistory(['home'])
   }, [])
-
 
   // 10. Telas do App (declaradas antes de qualquer return)
   const screens: Record<Tab, React.ReactNode> = {
