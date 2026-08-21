@@ -92,12 +92,7 @@ function CoinDetailModal({
         countryName => normalizeCountry(countryName) === coinCountryNorm
       )
 
-      if (!isAllowed) {
-        alert(
-          `Você não pode adicionar moedas de "${coin.country}" porque esta coleção não está ativa no seu perfil.\n\nVá em "Editar Perfil" e adicione "${coin.country}" às suas coleções primeiro.`
-        )
-        return
-      }
+      
     }
 
     onUpdateStatus(coin.id, newStatus)

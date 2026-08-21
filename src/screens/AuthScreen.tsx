@@ -13,26 +13,25 @@ export function AuthScreen({ onLogin }: AuthScreenProps) {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // 1. Esqueci minha senha no Supabase
-  const handleForgotPassword = async () => {
-    if (!email) {
-      alert('Por favor, digite seu e-mail no campo antes de clicar em "Esqueci minha senha".')
-      return
-    }
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
-
-      if (error) throw error
-      alert('E-mail de redefinição enviado! Verifique sua caixa de entrada e o spam.')
-    } catch (err: any) {
-      console.error('Erro ao enviar e-mail:', err)
-      alert('Erro ao enviar e-mail: ' + (err.message || 'Verifique se o e-mail está correto.'))
-    }
+// 1. Esqueci minha senha no Supabase
+const handleForgotPassword = async () => {
+  if (!email) {
+    alert('Por favor, digite seu e-mail no campo antes de clicar em "Esqueci minha senha".')
+    return
   }
 
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
+      redirectTo: window.location.origin,
+    })
+
+    if (error) throw error
+    alert('E-mail de redefinição enviado! Verifique sua caixa de entrada e o spam.')
+  } catch (err: any) {
+    console.error('Erro ao enviar e-mail:', err)
+    alert('Erro ao enviar e-mail: ' + (err.message || 'Verifique se o e-mail está correto.'))
+  }
+}
   // 2. Submissão do formulário (Login ou Cadastro no Supabase)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
