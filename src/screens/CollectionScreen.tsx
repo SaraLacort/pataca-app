@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { ALL_COINS } from '../data/coins' // Ajuste o caminho conforme seu projeto
-import { UserCoin, UserProfile, Coin } from '../types' // Ajuste o caminho dos tipos
-import CoinVisual from '../components/CoinVisual' // Ajuste o caminho do CoinVisual
+import { ALL_COINS } from '../data/coins'
+import { UserCoin, UserProfile, Coin } from '../types'
+import CoinVisual from '../components/CoinVisual'
 import { CoinDetailModal } from '../components/CoinDetailModal'
 import { MONETARY_PLANS } from '../data/constants'
-
 
 interface CollectionScreenProps {
   userCoins: Record<string, UserCoin>
@@ -40,10 +39,8 @@ export function CollectionScreen({
 
   // 4. Filtra as moedas do país selecionado + status (Tenho, Buscando ou Favoritas)
   const displayedCoins = useMemo(() => {
-    // Pega primeiro apenas as moedas do país selecionado
     const countryCoins = ALL_COINS.filter(c => c.country === selectedCountry)
 
-    // Aplica o filtro de status/favorito
     return countryCoins.filter(c => {
       const uc = userCoins[c.id]
       if (activeStatusTab === 'owned') return uc?.status === 'owned'
@@ -153,11 +150,14 @@ export function CollectionScreen({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {displayedCoins.map(coin => {
             const uc = userCoins[coin.id]
+            const quantity = uc?.quantity || 1
+
             return (
               <button
                 key={coin.id}
                 onClick={() => onCoinClick(coin)}
                 style={{
+                  position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 14,
@@ -169,13 +169,39 @@ export function CollectionScreen({
                   textAlign: 'left',
                 }}
               >
-                <CoinVisual coin={coin} userStatus={uc?.status ?? null} size={48} />
+                {/* Visual da Moeda */}
+                <div style={{ position: 'relative' }}>
+                  <CoinVisual coin={coin} userStatus={uc?.status ?? null} size={48} />
+                </div>
+
+                {/* Informações da Moeda */}
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: '#ffffff' }}>{coin.name}</p>
                   <p style={{ margin: '2px 0 0', fontSize: 12, color: '#8e8e93' }}>
                     {coin.year} · {coin.monetaryPlan}
                   </p>
                 </div>
+
+                {/* Badge Dourada de Quantidade Repetida */}
+                {uc?.status === 'owned' && quantity > 1 && (
+                  <span
+                    style={{
+                      background: 'linear-gradient(135deg, #FFE566, #D4AF37)',
+                      color: '#000000',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      fontFamily: "'Roboto Slab', serif",
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                      marginRight: 4,
+                    }}
+                  >
+                    {quantity}x
+                  </span>
+                )}
+
+                {/* Ícone de Favorito */}
                 {uc?.favorite && <span style={{ fontSize: 14 }}>❤️</span>}
               </button>
             )

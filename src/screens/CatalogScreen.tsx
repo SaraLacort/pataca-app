@@ -9,7 +9,12 @@ import { MONETARY_PLANS } from '../data/constants'
 interface CatalogScreenProps {
   userCoins: Record<string, UserCoin>
   onCoinClick: (coin: Coin) => void
-  onUpdateStatus: (coinId: string, status: CoinStatus | null) => void
+onUpdateStatus: (
+  coinId: string,
+  status: CoinStatus | null,
+  quantity?: number,
+  country?: string
+) => void
 }
 
 export function CatalogScreen({

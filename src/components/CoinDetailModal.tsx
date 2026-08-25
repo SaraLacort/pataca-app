@@ -16,7 +16,11 @@ interface CoinDetailModalProps {
   userCoin?: UserCoin
   userProfile?: UserProfile | null
   onClose: () => void
-  onUpdateStatus: (coinId: string, status: CoinStatus | null) => void
+onUpdateStatus: (
+  coinId: string,
+  status: CoinStatus | null,
+  quantity?: number
+) => void
   onToggleFavorite: (coinId: string) => void
 }
 
@@ -29,7 +33,19 @@ function CoinDetailModal({
   onToggleFavorite,
 }: CoinDetailModalProps) {
   const [imageView, setImageView] = useState<'front' | 'back'>('front')
+const currentQuantity = Math.max(1, userCoin?.quantity ?? 1)
 
+const handleIncrement = () => {
+  onUpdateStatus(coin.id, 'owned', currentQuantity + 1)
+}
+
+const handleDecrement = () => {
+  if (currentQuantity > 1) {
+    onUpdateStatus(coin.id, 'owned', currentQuantity - 1)
+  } else {
+    onUpdateStatus(coin.id, null, 0)
+  }
+}
   // Varredura completa para descobrir os países ativos do usuário
   const getActiveCountries = (): string[] => {
     // 1. Tenta pegar direto das props recebidas
@@ -195,10 +211,83 @@ function CoinDetailModal({
                     cursor: 'pointer',
                   }}
                 >
-                  {v === 'front' ? 'Anverso' : 'Reverso'}
+                  {v === 'front' ? 'Reverso' : 'Anverso'}
                 </button>
               ))}
             </div>
+
+          {userCoin?.status === 'owned' && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#1c1c1e',
+                padding: '10px 16px',
+                borderRadius: 12,
+                border: '1px solid #2c2c2e',
+                marginTop: 12,
+                marginBottom: 20,
+              }}
+            >
+              <span style={{ fontSize: 14, color: '#8e8e93' }}>
+                Quantidade : &nbsp;
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  onClick={handleDecrement}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: '#2c2c2e',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: 18,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  -
+                </button>
+
+                <span
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    minWidth: 20,
+                    textAlign: 'center',
+                    color: '#ffffff',
+                  }}
+                >
+                  {currentQuantity}
+                </span>
+
+                <button
+                  onClick={handleIncrement}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: '#4DA3FF',
+                    color: '#000',
+                    border: 'none',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
 
             <div style={{ background: '#2c2c2e', borderRadius: 14, padding: 14, width: '100%', boxSizing: 'border-box' }}>
               <p style={{ margin: 0, fontSize: 13, color: '#8e8e93', textAlign: 'center', fontStyle: 'italic' }}>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { ExportCollectionScreen } from './ExportCollectionScreen'
 import { supabase } from './lib/supabaseClient'
 import CoinDetailModal from './components/CoinDetailModal'
@@ -240,6 +240,8 @@ export default function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [tabHistory, setTabHistory] = useState<Tab[]>(['home'])
   const [userCoins, setUserCoins] = useState<Record<string, UserCoin>>({})
+  const userCoinsRef = useRef<Record<string, UserCoin>>({})
+  useEffect(() => {userCoinsRef.current = userCoins}, [userCoins])
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true) // <-- Trava inicial
@@ -435,93 +437,195 @@ useEffect(() => {
 
 
 // 6. Atualiza status da moeda e sincroniza coleções automaticamente
-  const handleUpdateStatus = useCallback(async (coinId: string, status: CoinStatus | null, quantity: number = 1) => {
-    setUserCoins(prev => {
-      let updatedCoins: Record<string, UserCoin>
+const handleUpdateStatus = useCallback(
+  async (
+    coinId: string,
+    status: CoinStatus | null,
+    quantity: number = 1
+  ) => {
+    // ============================================================
+    // 1. PEGA O ESTADO MAIS ATUAL DAS MOEDAS
+    // ============================================================
+    const previousCoins = userCoinsRef.current
 
-      // 1. Atualiza ou remove a moeda
-      if (!status) {
-        const next = { ...prev }
-        delete next[coinId]
-        updatedCoins = next
-      } else {
-        updatedCoins = {
-          ...prev,
-          [coinId]: {
-            ...(prev[coinId] ?? { coinId, favorite: false }),
-            status,
-            quantity: status === 'owned' ? quantity : 0,
-          },
-        }
+    let updatedCoins: Record<string, UserCoin>
+
+    // ============================================================
+    // 2. ATUALIZA OU REMOVE A MOEDA
+    // ============================================================
+    if (!status) {
+      updatedCoins = { ...previousCoins }
+      delete updatedCoins[coinId]
+    } else {
+      const existingCoin = previousCoins[coinId]
+
+      updatedCoins = {
+        ...previousCoins,
+        [coinId]: {
+          ...(existingCoin ?? {
+            coinId,
+            favorite: false,
+          }),
+          status,
+          quantity: status === 'owned'
+            ? Math.max(1, quantity)
+            : 0,
+        },
       }
+    }
 
-      // 2. Identifica os países que ainda possuem pelo menos uma moeda ativa
-      const activeCoinIds = Object.keys(updatedCoins).filter(id => {
-        const coin = updatedCoins[id]
-        return coin && (coin.status === 'owned' || coin.status === 'wanted' || coin.favorite)
-      })
+    // ============================================================
+    // 3. ATUALIZA A REFERÊNCIA IMEDIATAMENTE
+    // ============================================================
+    userCoinsRef.current = updatedCoins
 
-      const activeCountries = Array.from(
-        new Set(
-          activeCoinIds
-            .map(id => ALL_COINS.find(c => String(c.id) === String(id))?.country)
-            .filter(Boolean) as string[]
+    // ============================================================
+    // 4. ATUALIZA A INTERFACE
+    // ============================================================
+    setUserCoins(updatedCoins)
+
+    // ============================================================
+    // 5. DESCOBRE QUAIS PAÍSES POSSUEM MOEDAS ATIVAS
+    //
+    // Um país entra em selectedCountries quando existe pelo menos
+    // uma moeda daquele país com:
+    //
+    // - status = owned
+    // - status = wanted
+    // - ou favorite = true
+    //
+    // ============================================================
+    const activeCoinIds = Object.keys(updatedCoins).filter(id => {
+      const userCoin = updatedCoins[id]
+
+      return (
+        userCoin &&
+        (
+          userCoin.status === 'owned' ||
+          userCoin.status === 'wanted' ||
+          userCoin.favorite
         )
       )
+    })
 
-      // Garante que Brasil permaneça como padrão caso fique vazio
-      const updatedCountries = activeCountries.length > 0 ? activeCountries : ['Brasil']
+    const activeCountries = Array.from(
+      new Set(
+        activeCoinIds
+          .map(id => {
+            const coin = ALL_COINS.find(
+              c => String(c.id) === String(id)
+            )
 
-      // 3. Atualiza o perfil se a lista de coleções mudou
-      if (userProfile) {
-        const currentCountries = userProfile.selectedCountries || ['Brasil']
-        const hasChanged = 
-          currentCountries.length !== updatedCountries.length ||
-          !currentCountries.every(c => updatedCountries.includes(c))
-
-        if (hasChanged) {
-          const updatedProfile = { ...userProfile, selectedCountries: updatedCountries }
-          setUserProfile(updatedProfile)
-          localStorage.setItem('@app_session', JSON.stringify(updatedProfile))
-
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user?.id) {
-              supabase
-                .from('profiles')
-                .update({ 
-                  selected_countries: updatedCountries,
-                  updated_at: new Date().toISOString() 
-                })
-                .eq('id', session.user.id)
-                .then(({ error }) => {
-                  if (error) console.error('Erro ao atualizar coleções no perfil:', error)
-                })
-            }
+            return coin?.country
           })
+          .filter(Boolean) as string[]
+      )
+    )
+
+    // Brasil continua sendo o país padrão quando não existe nenhuma
+    // moeda ativa.
+    const updatedCountries =
+      activeCountries.length > 0
+        ? activeCountries
+        : ['Brasil']
+
+    // ============================================================
+    // 6. ATUALIZA selectedCountries NO PERFIL
+    // ============================================================
+    if (userProfile) {
+      const currentCountries =
+        userProfile.selectedCountries || ['Brasil']
+
+      const hasChanged =
+        currentCountries.length !== updatedCountries.length ||
+        !currentCountries.every(
+          country => updatedCountries.includes(country)
+        )
+
+      if (hasChanged) {
+        const updatedProfile = {
+          ...userProfile,
+          selectedCountries: updatedCountries,
+        }
+
+        setUserProfile(updatedProfile)
+
+        localStorage.setItem(
+          '@app_session',
+          JSON.stringify(updatedProfile)
+        )
+
+        // Salva os países no Supabase
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession()
+
+          if (session?.user?.id) {
+            const { error } = await supabase
+              .from('profiles')
+              .update({
+                selected_countries: updatedCountries,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', session.user.id)
+
+            if (error) {
+              console.error(
+                'Erro ao atualizar países do perfil:',
+                error
+              )
+            }
+          }
+        } catch (error) {
+          console.error(
+            'Erro ao salvar países do perfil:',
+            error
+          )
         }
       }
+    }
 
-      // 4. Salva as moedas no Supabase
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user?.id) {
-          supabase
-            .from('user_coins')
-            .upsert({ 
-              user_id: session.user.id, 
-              coins: updatedCoins, 
-              updated_at: new Date().toISOString() 
-            })
-            .then(({ error }) => {
-              if (error) console.error('Erro ao salvar moedas :', error)
-            })
-        }
-      })
+    // ============================================================
+    // 7. SALVA AS MOEDAS NO SUPABASE
+    // ============================================================
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      return updatedCoins
-    })
-  }, [userProfile])
+      const userId = session?.user?.id
 
-  // 7. Alterna o estado de favorita
+      if (!userId) {
+        console.error('Usuário não autenticado.')
+        return
+      }
+
+      const { error } = await supabase
+        .from('user_coins')
+        .upsert({
+          user_id: userId,
+          coins: updatedCoins,
+          updated_at: new Date().toISOString(),
+        })
+
+      if (error) {
+        console.error(
+          'Erro ao salvar moedas:',
+          error
+        )
+      }
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar moedas:',
+        error
+      )
+    }
+  },
+  [userProfile]
+)
+
+// 7. Alterna o estado de favorita
   const handleToggleFavorite = useCallback((coinId: string) => {
     setUserCoins(prev => {
       const existing = prev[coinId]

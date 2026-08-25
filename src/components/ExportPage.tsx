@@ -18,23 +18,78 @@ interface ExportPageProps {
 
 export function ExportPage({ userCollection, onBack }: ExportPageProps) {
   // Transforma em Array caso venha como Objeto do state
-  const coinsArray = Array.isArray(userCollection)
-    ? userCollection
-    : Object.keys(userCollection || {}).map(id => {
-        const coinData = ALL_COINS.find(c => c.id === id)
-        return {
-          id,
-          name: coinData?.name || 'Moeda',
-          year: coinData?.year || '',
-          monetaryPlan: coinData?.monetaryPlan || '',
-          material: coinData?.material || '',
-          country: coinData?.country || 'Brasil',
-          quantity: userCollection[id]?.quantity || 1,
-          stateOfPreservation: userCollection[id]?.stateOfPreservation || '-',
-          status: userCollection[id]?.status || 'owned'
-        }
-      })
+// ============================================================
+// PREPARA AS MOEDAS PARA EXPORTAÇÃO
+// ============================================================
 
+const rawCoinsArray = Array.isArray(userCollection)
+  ? userCollection
+  : Object.keys(userCollection || {}).map(id => {
+      const coinData = ALL_COINS.find(c => c.id === id)
+      const collectionData = userCollection[id] || {}
+
+      return {
+        id,
+        name: coinData?.name || 'Moeda',
+        year: coinData?.year || '',
+        monetaryPlan: coinData?.monetaryPlan || '',
+        material: coinData?.material || '',
+        country: coinData?.country || 'Brasil',
+        quantity: Number(collectionData.quantity) || 1,
+        stateOfPreservation: collectionData.stateOfPreservation || '-',
+        status: collectionData.status
+      }
+    })
+
+
+// ============================================================
+// NORMALIZA O STATUS
+// ============================================================
+
+const normalizedCoins = rawCoinsArray.map(c => {
+
+  const statusValue = String(c.status || '')
+    .trim()
+    .toLowerCase()
+
+  const isOwned =
+    statusValue === 'owned' ||
+    statusValue === 'tenho' ||
+    statusValue === 'possuo' ||
+    statusValue === 'possui' ||
+    statusValue === 'possída' ||
+    statusValue === 'possuída' ||
+    statusValue === 'possuidas' ||
+    statusValue === 'possuídas' ||
+    statusValue === 'have' ||
+    statusValue === 'collected' ||
+    statusValue === 'collection'
+
+  return {
+    ...c,
+
+    quantity: Math.max(1, Number(c.quantity) || 1),
+
+    // Se o status indicar que a moeda é da coleção,
+    // convertemos tudo para o padrão interno "owned".
+    status: isOwned ? 'owned' : statusValue
+  }
+})
+
+
+// ============================================================
+// CRIA UMA LINHA PARA CADA EXEMPLAR
+// ============================================================
+
+const coinsArray = normalizedCoins.flatMap(c =>
+  Array.from(
+    { length: c.quantity },
+    (_, index) => ({
+      ...c,
+      copyNumber: index + 1
+    })
+  )
+)
   // 1. Exportação para CSV / Excel
   const handleCSV = () => {
     if (!coinsArray.length) return alert('Sua coleção está vazia!')
@@ -81,16 +136,33 @@ export function ExportPage({ userCollection, onBack }: ExportPageProps) {
 
     const today = new Date().toLocaleDateString('pt-BR')
 
-    const tableRows = coinsArray.map(c => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">${c.name}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${c.year}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${c.monetaryPlan || '-'}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${c.material || '-'}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${c.stateOfPreservation || '-'}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${c.status === 'owned' ? 'Possuída' : 'Buscando'}</td>
-      </tr>
-    `).join('')
+const tableRows = coinsArray.map(c => `
+  <tr>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">
+      ${c.name}
+    </td>
+
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+      ${c.year}
+    </td>
+
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+      ${c.monetaryPlan || '-'}
+    </td>
+
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+      ${c.material || '-'}
+    </td>
+
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+      ${c.stateOfPreservation || '-'}
+    </td>
+
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+      ${c.status === 'owned' ? 'Possuída' : 'Buscando'}
+    </td>
+  </tr>
+`).join('')
 
     const htmlContent = `
       <!DOCTYPE html>
