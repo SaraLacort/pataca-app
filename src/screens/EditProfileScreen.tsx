@@ -321,7 +321,7 @@ export function EditProfileScreen({
         )}
       </div>
 
-      {/* 2. SEÇÃO EXPANSÍVEL DE PAÍSES */}
+      {/*  2. SEÇÃO EXPANSÍVEL DE PAÍSES *
       <div style={{ background: '#1c1c1e', borderRadius: 14, border: '1px solid #2c2c2e', padding: 14 }}>
         <button
           type="button"
@@ -382,7 +382,7 @@ export function EditProfileScreen({
             })}
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* 3. DADOS A SEREM EDITADOS */}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

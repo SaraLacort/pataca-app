@@ -224,6 +224,111 @@ function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => vo
   )
 }
 
+// ─── DESKTOPNAV ────────────────────────────────────────────────────────────────
+function DesktopNav({
+  active,
+  onChange,
+}: {
+  active: Tab
+  onChange: (t: Tab) => void
+}) {
+  const tabs: { id: Tab; icon: string; label: string }[] = [
+    { id: 'home', icon: '🏠', label: 'Home' },
+    { id: 'catalog', icon: '📚', label: 'Catálogo' },
+    { id: 'collection', icon: '🪙', label: 'Minhas Coleções' },
+    { id: 'stats', icon: '🏆', label: 'Ranking' },
+    { id: 'profile', icon: '👤', label: 'Perfil' },
+  ]
+
+  return (
+    <aside
+      style={{
+        width: 240,
+        minWidth: 240,
+        background: '#111113',
+        borderRight: '1px solid #2c2c2e',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '24px 16px',
+        boxSizing: 'border-box',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginBottom: 30,
+          padding: '0 8px',
+        }}
+      >
+        <img
+          src="/logo.png"
+          alt="Pataca"
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: '50%',
+            objectFit: 'cover',
+          }}
+        />
+
+        <span
+          style={{
+            fontFamily: "'Roboto Slab', serif",
+            fontSize: 24,
+            fontWeight: 700,
+            color: '#ffffff',
+          }}
+        >
+          Pataca
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
+        {tabs.map(tab => {
+          const isActive = active === tab.id
+
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onChange(tab.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: 'none',
+                background: isActive
+                  ? 'rgba(77,163,255,0.15)'
+                  : 'transparent',
+                color: isActive ? '#4DA3FF' : '#8e8e93',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ fontSize: 20 }}>
+                {tab.icon}
+              </span>
+
+              <span>{tab.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </aside>
+  )
+}
 // ─── AuthScreen ───────────────────────────────────────────────────────────────
 
 interface UserProfile {
@@ -247,12 +352,26 @@ export default function App() {
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true) // <-- Trava inicial
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [showExportPage, setShowExportPage] = useState(false)
-
-const [isResettingPassword, setIsResettingPassword] = useState<boolean>(() => {
+  const [isResettingPassword, setIsResettingPassword] = useState<boolean>(() => {
   const hash = window.location.hash
   const search = window.location.search
   return hash.includes('type=recovery') || search.includes('type=recovery') || hash.includes('access_token')
 })
+const [isDesktop, setIsDesktop] = useState(
+  () => window.innerWidth >= 900
+)
+
+useEffect(() => {
+  const handleResize = () => {
+    setIsDesktop(window.innerWidth >= 900)
+  }
+
+  window.addEventListener('resize', handleResize)
+
+  return () => {
+    window.removeEventListener('resize', handleResize)
+  }
+}, [])
 
   // 1. Carrega e valida sessão rigorosamente antes de abrir qualquer tela
 useEffect(() => {
@@ -714,11 +833,63 @@ const handleUpdateStatus = useCallback(
     setTabHistory(['home'])
   }, [])
 
+const handleReorderCountries = useCallback(
+  async (countries: string[]) => {
+    if (!userProfile) return
+
+    const updatedProfile = {
+      ...userProfile,
+      selectedCountries: countries,
+    }
+
+    // Atualiza imediatamente na interface
+    setUserProfile(updatedProfile)
+
+    // Atualiza o localStorage
+    localStorage.setItem(
+      '@app_session',
+      JSON.stringify(updatedProfile)
+    )
+
+    // Salva a nova ordem no Supabase
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user?.id) {
+        console.error('Usuário não autenticado.')
+        return
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          selected_countries: countries,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', session.user.id)
+
+      if (error) {
+        console.error(
+          'Erro ao salvar ordem dos países:',
+          error
+        )
+      }
+    } catch (error) {
+      console.error(
+        'Erro ao reorganizar países:',
+        error
+      )
+    }
+  },
+  [userProfile]
+)
   // 10. Telas do App (declaradas antes de qualquer return)
   const screens: Record<Tab, React.ReactNode> = {
     home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
     catalog: <CatalogScreen userCoins={userCoins} onCoinClick={handleOpenCoinDetail} onUpdateStatus={handleUpdateStatus} />,
-    collection: <CollectionScreen userCoins={userCoins} userProfile={userProfile} onCoinClick={handleOpenCoinDetail} />,
+    collection: <CollectionScreen onReorderCountries={handleReorderCountries} userCoins={userCoins} userProfile={userProfile} onCoinClick={handleOpenCoinDetail} />,
     stats: <RankingScreen userCoins={userCoins} userProfile={userProfile} />,
     profile: isEditingProfile ? (
       <EditProfileScreen
@@ -766,24 +937,42 @@ if (!isLoggedIn) {
   return <AuthScreen onLogin={handleLoginSuccess} />
 }
   
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100dvh',
-        width: '100%',
-        maxWidth: 480,
-        margin: '0 auto',
-        position: 'relative',
-        overflow: 'hidden',
-        background: '#0c0c0e',
-        color: '#ffffff',
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        boxSizing: 'border-box',
-      }}
-    >
+return (
+  <div
+    style={{
+      display: 'flex',
+      flexDirection: isDesktop ? 'row' : 'column',
+      height: '100dvh',
+      width: '100%',
+      maxWidth: isDesktop ? 1400 : 480,
+      margin: '0 auto',
+      position: 'relative',
+      overflow: 'hidden',
+      background: '#0c0c0e',
+      color: '#ffffff',
+      paddingTop: 'env(safe-area-inset-top)',
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      boxSizing: 'border-box',
+    }}
+  >
+    
+     {isDesktop && (
+  <DesktopNav
+    active={activeTab}
+    onChange={handleTabChange}
+  />
+)}
+<div
+  style={{
+    flex: 1,
+    minWidth: 0,
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  }}
+>
+   
       {/* Top bar */}
       <div
         style={{
@@ -844,15 +1033,19 @@ if (!isLoggedIn) {
           flex: 1,
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          padding: '20px 20px 12px',
+          padding: isDesktop ? '32px 40px' : '20px 20px 12px',
         }}
       >
         {screens[activeTab]}
       </div>
 
       {/* Menu Inferior */}
-      <BottomNav active={activeTab} onChange={handleTabChange} />
-
+{!isDesktop && (
+  <BottomNav
+    active={activeTab}
+    onChange={handleTabChange}
+  />
+)}
       {/* Modal da Moeda */}
       {selectedCoin && (
         <CoinDetailModal
@@ -901,5 +1094,6 @@ if (!isLoggedIn) {
         </div>
       )}
     </div>
-  )
+  </div>
+)
 }

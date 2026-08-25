@@ -26,11 +26,31 @@ export function HomeScreen({
   // 2. Calcula as métricas por país
   const collectionStatsByCountry = useMemo(() => {
     return activeCountries.map(country => {
-      const countryCoins = ALL_COINS.filter(c => c.country === country)
-      const owned = countryCoins.filter(c => userCoins[c.id]?.status === 'owned').length
-      const wanted = countryCoins.filter(c => userCoins[c.id]?.status === 'wanted').length
-      const total = countryCoins.length
-      const pct = total > 0 ? Math.round((owned / total) * 100) : 0
+const countryCoins = ALL_COINS.filter(c => c.country === country)
+
+// Quantidade total física de moedas, incluindo repetidas
+const owned = countryCoins.filter(
+  c => userCoins[c.id]?.status === 'owned'
+).length
+
+const wanted = countryCoins.filter(
+  c => userCoins[c.id]?.status === 'wanted'
+).length
+
+const total = countryCoins.length
+
+const pct =
+  total > 0
+    ? Math.round((owned / total) * 100)
+    : 0
+
+// Quantidade de tipos diferentes possuídos.
+// Usada apenas para calcular a porcentagem da coleção.
+const uniqueOwned = countryCoins.filter(
+  c => userCoins[c.id]?.status === 'owned'
+).length
+
+
 
       return { country, owned, wanted, total, pct }
     })
@@ -38,8 +58,11 @@ export function HomeScreen({
 
   // 3. CALCULA A POSIÇÃO REAL NO RANKING
   const myRank = useMemo(() => {
-    const myOwnedCount = Object.values(userCoins).filter(u => u.status === 'owned').length
-    const myName = userProfile?.name?.trim() || 'Colecionador'
+const myOwnedCount = Object.values(userCoins).filter(
+  u => u.status === 'owned'
+).length
+
+const myName = userProfile?.name?.trim() || 'Colecionador'
 
     const mockUsers = [
       { name: 'Carlos Silva', coinsCount: 142 },
@@ -155,7 +178,7 @@ export function HomeScreen({
             <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4CAF50' }} />
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{item.owned} possuídas</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{item.owned} Tenho</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FFB300' }} />

@@ -66,30 +66,27 @@ const normalizedCoins = rawCoinsArray.map(c => {
     statusValue === 'collection'
 
   return {
-    ...c,
+  ...c,
 
-    quantity: Math.max(1, Number(c.quantity) || 1),
+  quantity:
+    isOwned
+      ? Math.max(1, Number(c.quantity) || 1)
+      : 0,
 
-    // Se o status indicar que a moeda é da coleção,
-    // convertemos tudo para o padrão interno "owned".
-    status: isOwned ? 'owned' : statusValue
-  }
+  status: isOwned ? 'owned' : statusValue
+}
 })
 
 
+
 // ============================================================
-// CRIA UMA LINHA PARA CADA EXEMPLAR
+// UMA LINHA POR TIPO DE MOEDA
+// A quantidade aparece em sua própria coluna
 // ============================================================
 
-const coinsArray = normalizedCoins.flatMap(c =>
-  Array.from(
-    { length: c.quantity },
-    (_, index) => ({
-      ...c,
-      copyNumber: index + 1
-    })
-  )
-)
+const coinsArray = normalizedCoins
+
+
   // 1. Exportação para CSV / Excel
   const handleCSV = () => {
     if (!coinsArray.length) return alert('Sua coleção está vazia!')
@@ -104,7 +101,7 @@ const coinsArray = normalizedCoins.flatMap(c =>
       `"${(c.material || '-').replace(/"/g, '""')}"`,
       c.quantity || 1,
       `"${(c.stateOfPreservation || '-').replace(/"/g, '""')}"`,
-      `"${c.status === 'owned' ? 'Possuída' : 'Buscando'}"`
+      `"${c.status === 'owned' ? 'Tenho' : 'Buscando'}"`
     ])
 
     const textContent = 'sep=;\n' + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n')
@@ -128,99 +125,366 @@ const coinsArray = normalizedCoins.flatMap(c =>
   }
 
   // 2. Exportação para PDF (Gera o relatório formatado em janela própria)
-  const handlePDF = () => {
-    if (!coinsArray.length) return alert('Sua coleção está vazia!')
-
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) return alert('Por favor, permita pop-ups para gerar o PDF.')
-
-    const today = new Date().toLocaleDateString('pt-BR')
-
-const tableRows = coinsArray.map(c => `
-  <tr>
-    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">
-      ${c.name}
-    </td>
-
-    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-      ${c.year}
-    </td>
-
-    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-      ${c.monetaryPlan || '-'}
-    </td>
-
-    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-      ${c.material || '-'}
-    </td>
-
-    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-      ${c.stateOfPreservation || '-'}
-    </td>
-
-    <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-      ${c.status === 'owned' ? 'Possuída' : 'Buscando'}
-    </td>
-  </tr>
-`).join('')
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Coleção Pataca - Relatório</title>
-        <style>
-          body { font-family: sans-serif; color: #111; padding: 20px; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #D4AF37; padding-bottom: 10px; margin-bottom: 20px; }
-          h1 { margin: 0; font-size: 24px; color: #0c0c0e; }
-          .sub { color: #666; font-size: 12px; margin-top: 4px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-          th { background: #0c0c0e; color: #fff; text-align: left; padding: 8px; }
-          .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #888; border-top: 1px solid #ddd; padding-top: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div>
-            <h1>PATACA</h1>
-            <div class="sub">Relatório do Acervo Numismático · Gerado em ${today}</div>
-          </div>
-          <div><strong>Total: ${coinsArray.length} moedas</strong></div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Ano</th>
-              <th>Plano Monetário</th>
-              <th>Material</th>
-              <th>Estado</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
-
-        <div class="footer">
-          Pataca - Seu Acervo Numismático
-        </div>
-
-        <script>
-          window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 500);
-          }
-        </script>
-      </body>
-      </html>
-    `
-
-    printWindow.document.write(htmlContent)
-    printWindow.document.close()
+const handlePDF = () => {
+  if (!coinsArray.length) {
+    return alert('Sua coleção está vazia!')
   }
+
+  const printWindow = window.open('', '_blank')
+
+  if (!printWindow) {
+    return alert('Por favor, permita pop-ups para gerar o PDF.')
+  }
+
+  const today = new Date().toLocaleDateString('pt-BR')
+
+  // Quantidade física total de moedas possuídas
+  const totalOwnedQuantity = coinsArray.reduce((total, coin) => {
+    if (coin.status !== 'owned') {
+      return total
+    }
+
+    return total + Math.max(1, Number(coin.quantity) || 1)
+  }, 0)
+
+  // Quantidade de tipos diferentes possuídos
+  const totalOwnedTypes = coinsArray.filter(
+    coin => coin.status === 'owned'
+  ).length
+
+  const totalWanted = coinsArray.filter(
+    coin => coin.status === 'wanted'
+  ).length
+
+  const tableRows = coinsArray.map((c, index) => {
+    const isOwned = c.status === 'owned'
+
+    return `
+      <tr class="${index % 2 === 0 ? 'even' : 'odd'}">
+
+        <td class="country">
+          ${c.country || 'Brasil'}
+        </td>
+
+        <td class="coin-name">
+          ${c.name || 'Moeda'}
+        </td>
+
+        <td class="center">
+          ${c.year || '-'}
+        </td>
+
+        <td>
+          ${c.monetaryPlan || '-'}
+        </td>
+
+        <td>
+          ${c.material || '-'}
+        </td>
+
+        <td class="center quantity">
+          ${isOwned ? c.quantity : '-'}
+        </td>
+
+        <td class="center">
+          ${c.stateOfPreservation || '-'}
+        </td>
+
+        <td class="center">
+          <span class="status ${isOwned ? 'owned' : 'wanted'}">
+            ${isOwned ? 'Tenho' : 'Buscando'}
+          </span>
+        </td>
+
+      </tr>
+    `
+  }).join('')
+
+  const htmlContent = `
+    <!DOCTYPE html>
+
+    <html lang="pt-BR">
+
+    <head>
+
+      <meta charset="UTF-8" />
+
+      <title>Coleção Pataca - Relatório</title>
+
+      <style>
+
+        @page {
+          size: A4 landscape;
+          margin: 12mm;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, Helvetica, sans-serif;
+          color: #202124;
+          background: #ffffff;
+        }
+
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          border-bottom: 3px solid #D4AF37;
+          padding-bottom: 12px;
+          margin-bottom: 16px;
+        }
+
+        .brand {
+          font-size: 28px;
+          font-weight: 800;
+          letter-spacing: 2px;
+          color: #111111;
+        }
+
+        .subtitle {
+          color: #666666;
+          font-size: 11px;
+          margin-top: 4px;
+        }
+
+        .date {
+          font-size: 11px;
+          color: #777777;
+          text-align: right;
+        }
+
+        .summary {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .summary-card {
+          border: 1px solid #dddddd;
+          border-radius: 8px;
+          padding: 10px 12px;
+          background: #fafafa;
+        }
+
+        .summary-label {
+          font-size: 9px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #777777;
+          margin-bottom: 3px;
+        }
+
+        .summary-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: #111111;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: auto;
+          font-size: 10px;
+        }
+
+        thead {
+          display: table-header-group;
+        }
+
+        tr {
+          page-break-inside: avoid;
+        }
+
+        th {
+          background: #181818;
+          color: #ffffff;
+          padding: 8px 6px;
+          text-align: left;
+          font-size: 9px;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          border-right: 1px solid #444444;
+        }
+
+        td {
+          padding: 7px 6px;
+          border-bottom: 1px solid #e6e6e6;
+          vertical-align: middle;
+        }
+
+        tr.even {
+          background: #ffffff;
+        }
+
+        tr.odd {
+          background: #f8f8f8;
+        }
+
+        .coin-name {
+          font-weight: 700;
+          min-width: 130px;
+        }
+
+        .country {
+          font-weight: 600;
+        }
+
+        .center {
+          text-align: center;
+        }
+
+        .quantity {
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .status {
+          display: inline-block;
+          padding: 4px 7px;
+          border-radius: 10px;
+          font-size: 8px;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        .status.owned {
+          color: #247a31;
+          background: #e5f5e8;
+          border: 1px solid #b7dfbd;
+        }
+
+        .status.wanted {
+          color: #9a6500;
+          background: #fff4d6;
+          border: 1px solid #ead18a;
+        }
+
+        .footer {
+          margin-top: 18px;
+          padding-top: 8px;
+          border-top: 1px solid #dddddd;
+          display: flex;
+          justify-content: space-between;
+          color: #888888;
+          font-size: 9px;
+        }
+
+      </style>
+
+    </head>
+
+    <body>
+
+      <div class="header">
+
+        <div>
+          <div class="brand">PATACA</div>
+
+          <div class="subtitle">
+            Relatório do Acervo Numismático
+          </div>
+        </div>
+
+        <div class="date">
+          Gerado em ${today}
+        </div>
+
+      </div>
+
+      <div class="summary">
+
+        <div class="summary-card">
+          <div class="summary-label">
+            Exemplares no acervo
+          </div>
+
+          <div class="summary-value">
+            ${totalOwnedQuantity}
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-label">
+            Moedas diferentes
+          </div>
+
+          <div class="summary-value">
+            ${totalOwnedTypes}
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-label">
+            Buscando
+          </div>
+
+          <div class="summary-value">
+            ${totalWanted}
+          </div>
+        </div>
+
+      </div>
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>País</th>
+            <th>Moeda</th>
+            <th>Ano</th>
+            <th>Plano</th>
+            <th>Material</th>
+            <th style="text-align:center;">Qtd.</th>
+            <th style="text-align:center;">Estado</th>
+            <th style="text-align:center;">Status</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+          ${tableRows}
+        </tbody>
+
+      </table>
+
+      <div class="footer">
+
+        <span>
+          Pataca · Seu Acervo Numismático
+        </span>
+
+        <span>
+          ${totalOwnedQuantity} exemplares · ${totalOwnedTypes} moedas diferentes
+        </span>
+
+      </div>
+
+      <script>
+
+        window.onload = function() {
+          setTimeout(function() {
+            window.print()
+          }, 300)
+        }
+
+      </script>
+
+    </body>
+
+    </html>
+  `
+
+  printWindow.document.open()
+  printWindow.document.write(htmlContent)
+  printWindow.document.close()
+}
 
   return (
     <div
@@ -331,7 +595,11 @@ const tableRows = coinsArray.map(c => `
                 Itens no relatório
               </p>
               <p style={{ margin: '2px 0 0', fontFamily: "'Roboto Slab', serif", fontSize: 20, fontWeight: 700, color: '#ffffff' }}>
-                {coinsArray.length} {coinsArray.length === 1 ? 'moeda cadastrada' : 'moedas cadastradas'}
+                {coinsArray.reduce((total, coin) => {
+      if (coin.status !== 'owned') return total
+
+      return total + Math.max(1, Number(coin.quantity) || 1)
+    }, 0)} moedas no total
               </p>
             </div>
             <img src="/logo.png" alt="Ícone Pataca" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />

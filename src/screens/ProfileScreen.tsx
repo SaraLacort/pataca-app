@@ -33,7 +33,14 @@ export function ProfileScreen({
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [showExportPage, setShowExportPage] = useState(false)
 
-  const ownedCount = Object.values(userCoins).filter(u => u.status === 'owned').length
+const ownedCount = Object.values(userCoins).reduce((total, userCoin) => {
+  if (userCoin.status !== 'owned') {
+    return total
+  }
+
+  return total + Math.max(1, userCoin.quantity ?? 1)
+}, 0)
+
   const wantedCount = Object.values(userCoins).filter(u => u.status === 'wanted').length
   const activeCollectionsCount = userProfile?.selectedCountries?.length || 1
 
@@ -41,18 +48,29 @@ export function ProfileScreen({
   const initialLetter = userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : '👤'
 
   // Converte o objeto userCoins para a lista usada na exportação
-  const exportList = Object.keys(userCoins).map(id => {
-    const coinData = ALL_COINS.find(c => c.id === id)
-    return {
-      id,
-      name: coinData?.name || 'Moeda',
-      year: coinData?.year || '',
-      monetaryPlan: coinData?.monetaryPlan || '',
-      material: coinData?.material || '',
-      quantity: userCoins[id].quantity || 1,
-      stateOfPreservation: userCoins[id].stateOfPreservation || '-'
-    }
-  })
+const exportList = Object.keys(userCoins).map(id => {
+  const coinData = ALL_COINS.find(c => c.id === id)
+  const userCoin = userCoins[id]
+
+  return {
+    id,
+    name: coinData?.name || 'Moeda',
+    year: coinData?.year || '',
+    monetaryPlan: coinData?.monetaryPlan || '',
+    material: coinData?.material || '',
+    country: coinData?.country || 'Brasil',
+
+    quantity:
+      userCoin.status === 'owned'
+        ? Math.max(1, Number(userCoin.quantity) || 1)
+        : 0,
+
+    stateOfPreservation:
+      userCoin.condition || '-',
+
+    status: userCoin.status,
+  }
+})
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

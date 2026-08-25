@@ -10,9 +10,9 @@ export function RankingScreen({
   userCoins,
   userProfile,
 }: RankingScreenProps) {
-  const myOwnedCount = useMemo(() => {
-    return Object.values(userCoins).filter(u => u.status === 'owned').length
-  }, [userCoins])
+const myOwnedCount = Object.values(userCoins).filter(
+  coin => coin.status === 'owned'
+).length
 
   const myName = userProfile?.name?.trim() || 'Colecionador'
   const myAvatar = userProfile?.avatar || '/avatars/avatar-01.png'

@@ -9,13 +9,16 @@ interface CollectionScreenProps {
   userCoins: Record<string, UserCoin>
   userProfile: UserProfile | null
   onCoinClick: (coin: Coin) => void
+  onReorderCountries: (countries: string[]) => void
 }
 
 export function CollectionScreen({
   userCoins,
   userProfile,
   onCoinClick,
+  onReorderCountries,
 }: CollectionScreenProps) {
+
   // 1. Abas de estado (Tenho, Buscando, Favoritas)
   const [activeStatusTab, setActiveStatusTab] = useState<'owned' | 'wanted' | 'favorites'>('owned')
 
@@ -29,6 +32,29 @@ export function CollectionScreen({
 
   // 3. País selecionado para visualizar (padrão é o primeiro da lista)
   const [selectedCountry, setSelectedCountry] = useState<string>(activeCountries[0] || 'Brasil')
+    const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null)
+  const [dragOverCountryIndex, setDragOverCountryIndex] = useState<number | null>(null)
+
+  const handleCountryDrop = (targetIndex: number) => {
+    if (
+      draggedCountryIndex === null ||
+      draggedCountryIndex === targetIndex
+    ) {
+      setDraggedCountryIndex(null)
+      setDragOverCountryIndex(null)
+      return
+    }
+
+    const reorderedCountries = [...activeCountries]
+    const [movedCountry] = reorderedCountries.splice(draggedCountryIndex, 1)
+
+    reorderedCountries.splice(targetIndex, 0, movedCountry)
+
+    onReorderCountries(reorderedCountries)
+
+    setDraggedCountryIndex(null)
+    setDragOverCountryIndex(null)
+  }
 
   // Garante que se o usuário mudar os países no perfil, o estado do país selecionado se ajusta
   useEffect(() => {
@@ -52,7 +78,17 @@ export function CollectionScreen({
 
   // Contadores para o país selecionado
   const countryTotalCoins = ALL_COINS.filter(c => c.country === selectedCountry).length
-  const countryOwnedCount = ALL_COINS.filter(c => c.country === selectedCountry && userCoins[c.id]?.status === 'owned').length
+const countryOwnedCount = ALL_COINS
+  .filter(c => c.country === selectedCountry)
+  .reduce((total, coin) => {
+    const userCoin = userCoins[coin.id]
+
+    if (userCoin?.status !== 'owned') {
+      return total
+    }
+
+    return total + Math.max(1, userCoin.quantity ?? 1)
+  }, 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 16 }}>
@@ -66,32 +102,134 @@ export function CollectionScreen({
         </p>
       </div>
 
-      {/* SELETOR DE COLEÇÃO/PAÍS (CHIPS HORIZONTAIS) */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
-        {activeCountries.map(country => {
-          const isSelected = country === selectedCountry
-          return (
-            <button
-              key={country}
-              onClick={() => setSelectedCountry(country)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 20,
-                border: `1px solid ${isSelected ? '#D4AF37' : '#2c2c2e'}`,
-                background: isSelected ? 'rgba(212,175,55,0.15)' : '#1c1c1e',
-                color: isSelected ? '#D4AF37' : '#8e8e93',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              {country}
-            </button>
+{/* SELETOR DE COLEÇÃO/PAÍS - ARRASTAR PARA REORDENAR */}
+<div
+  style={{
+    display: 'flex',
+    gap: 8,
+    overflowX: 'auto',
+    paddingBottom: 4,
+    WebkitOverflowScrolling: 'touch',
+  }}
+>
+  {activeCountries.map((country, index) => {
+    const isSelected = country === selectedCountry
+    const isDragging = draggedCountryIndex === index
+    const isDragOver = dragOverCountryIndex === index
+
+    return (
+      <button
+        key={country}
+        draggable
+        data-country-index={index}
+        onClick={() => {
+          // Não troca o país enquanto está arrastando
+          if (draggedCountryIndex === null) {
+            setSelectedCountry(country)
+          }
+        }}
+        onDragStart={e => {
+          setDraggedCountryIndex(index)
+          e.dataTransfer.effectAllowed = 'move'
+        }}
+        onDragOver={e => {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'move'
+
+          if (dragOverCountryIndex !== index) {
+            setDragOverCountryIndex(index)
+          }
+        }}
+        onDrop={e => {
+          e.preventDefault()
+          handleCountryDrop(index)
+        }}
+        onDragEnd={() => {
+          setDraggedCountryIndex(null)
+          setDragOverCountryIndex(null)
+        }}
+        onTouchStart={() => {
+          setDraggedCountryIndex(index)
+        }}
+        onTouchMove={e => {
+          if (draggedCountryIndex === null) return
+
+          const touch = e.touches[0]
+
+          const element = document.elementFromPoint(
+            touch.clientX,
+            touch.clientY
           )
-        })}
-      </div>
+
+          const countryButton = element?.closest(
+            '[data-country-index]'
+          ) as HTMLElement | null
+
+          if (countryButton) {
+            const targetIndex = Number(
+              countryButton.dataset.countryIndex
+            )
+
+            if (!Number.isNaN(targetIndex)) {
+              setDragOverCountryIndex(targetIndex)
+            }
+          }
+        }}
+        onTouchEnd={() => {
+          if (
+            draggedCountryIndex !== null &&
+            dragOverCountryIndex !== null
+          ) {
+            handleCountryDrop(dragOverCountryIndex)
+          } else {
+            setDraggedCountryIndex(null)
+            setDragOverCountryIndex(null)
+          }
+        }}
+        style={{
+          padding: '8px 16px',
+          borderRadius: 20,
+
+          border: `1px solid ${
+            isDragOver
+              ? '#4DA3FF'
+              : isSelected
+              ? '#D4AF37'
+              : '#2c2c2e'
+          }`,
+
+          background: isDragOver
+            ? 'rgba(77,163,255,0.15)'
+            : isSelected
+            ? 'rgba(212,175,55,0.15)'
+            : '#1c1c1e',
+
+          color: isSelected ? '#D4AF37' : '#8e8e93',
+
+          fontSize: 13,
+          fontWeight: 600,
+
+          cursor: isDragging ? 'grabbing' : 'grab',
+
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+
+          opacity: isDragging ? 0.5 : 1,
+
+          transform: isDragOver ? 'scale(1.05)' : 'scale(1)',
+
+          transition: 'all 0.15s ease',
+
+          touchAction: 'none',
+          userSelect: 'none',
+        }}
+      >
+        {country}
+      </button>
+    )
+  })}
+</div>
+
 
       {/* ABAS DE STATUS (TENHO, BUSCO, FAVORITAS) */}
       <div style={{ display: 'flex', gap: 8, background: '#1c1c1e', padding: 4, borderRadius: 12, border: '1px solid #2c2c2e' }}>
@@ -140,7 +278,7 @@ export function CollectionScreen({
           </p>
           <p style={{ margin: 0, fontSize: 12, color: '#8e8e93' }}>
             {activeStatusTab === 'owned'
-              ? `Você ainda não marcou nenhuma moeda de ${selectedCountry} como possuída.`
+              ? `Você ainda não marcou nenhuma moeda de ${selectedCountry} como Tenho.`
               : activeStatusTab === 'wanted'
               ? `Sua lista de moedas buscadas de ${selectedCountry} está vazia.`
               : `Você não tem moedas favoritas em ${selectedCountry}.`}
