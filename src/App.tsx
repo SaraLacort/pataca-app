@@ -1078,7 +1078,7 @@ return (
           <div
             style={{
               width: '100%',
-              maxWidth: 480,
+              maxWidth: isDesktop ? 1200 : 480,
               minHeight: '100vh',
               background: '#0c0c0e',
               display: 'flex',

@@ -504,7 +504,6 @@ const handlePDF = () => {
           flexDirection: 'column',
           height: '100dvh',
           width: '100%',
-          maxWidth: 480,
           background: '#0c0c0e',
           color: '#ffffff',
           boxSizing: 'border-box',
