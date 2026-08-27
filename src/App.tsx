@@ -351,6 +351,61 @@ function DesktopNav({
   )
 }
 
+function DesktopLayout({
+  activeTab,
+  onTabChange,
+  onExport,
+  isExportActive,
+  children,
+}: {
+  activeTab: Tab
+  onTabChange: (tab: Tab) => void
+  onExport: () => void
+  isExportActive: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        width: '100%',
+        minHeight: '100dvh',
+        background: '#0c0c0e',
+        color: '#ffffff',
+      }}
+    >
+      <DesktopNav
+        active={activeTab}
+        onChange={onTabChange}
+        onExport={onExport}
+        isExportActive={isExportActive}
+      />
+
+      <main
+        style={{
+          flex: 1,
+          minWidth: 0,
+          height: '100dvh',
+          overflowY: 'auto',
+          background: '#0c0c0e',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: 1180,
+            margin: '0 auto',
+            padding: '40px 42px 56px',
+            boxSizing: 'border-box',
+          }}
+        >
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
+
 // ─── App Component (Main) ───────────────────────────────────────────────────
 
 export default function App() {
@@ -904,7 +959,7 @@ const handleReorderCountries = useCallback(
 )
   // 10. Telas do App (declaradas antes de qualquer return)
   const screens: Record<Tab, React.ReactNode> = {
-    home: <HomeScreen userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
+    home: <HomeScreen  isDesktop={isDesktop} userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
     catalog: <CatalogScreen userCoins={userCoins} onCoinClick={handleOpenCoinDetail} onUpdateStatus={handleUpdateStatus} />,
     collection: <CollectionScreen onReorderCountries={handleReorderCountries} userCoins={userCoins} userProfile={userProfile} onCoinClick={handleOpenCoinDetail} />,
     stats: <RankingScreen userCoins={userCoins} userProfile={userProfile} />,
@@ -1127,15 +1182,40 @@ if (isResettingPassword) {
 if (!isLoggedIn) {
   return <AuthScreen onLogin={handleLoginSuccess} />
 }
-  
+  if (isDesktop) {
+  return (
+    <DesktopLayout
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      isExportActive={showExportPage}
+      onExport={() => {
+        setShowExportPage(true)
+        setIsEditingProfile(false)
+        setActiveTab('profile')
+      }}
+    >
+      {screens[activeTab]}
+
+      {selectedCoin && (
+        <CoinDetailModal
+          coin={selectedCoin}
+          userCoin={userCoins[selectedCoin.id]}
+          onClose={() => setSelectedCoin(null)}
+          onUpdateStatus={handleUpdateStatus}
+          onToggleFavorite={handleToggleFavorite}
+        />
+      )}
+    </DesktopLayout>
+  )
+}
 return (
   <div
     style={{
       display: 'flex',
-      flexDirection: isDesktop ? 'row' : 'column',
+      flexDirection: 'column',
       height: '100dvh',
       width: '100%',
-      maxWidth: isDesktop ? 1400 : 480,
+      maxWidth: 480,
       margin: '0 auto',
       position: 'relative',
       overflow: 'hidden',
@@ -1147,18 +1227,7 @@ return (
     }}
   >
     
-{isDesktop && (
-<DesktopNav
-  active={activeTab}
-  onChange={handleTabChange}
-  onExport={() => {
-    setShowExportPage(true)
-    setIsEditingProfile(false)
-    setActiveTab('profile')
-  }}
-  isExportActive={showExportPage}
-/>
-)}
+
 
 <div
   style={{
@@ -1267,12 +1336,12 @@ return (
 </div>
 
       {/* Menu Inferior */}
-{!isDesktop && (
+
   <BottomNav
     active={activeTab}
     onChange={handleTabChange}
   />
-)}
+
       {/* Modal da Moeda */}
       {selectedCoin && (
         <CoinDetailModal

@@ -160,7 +160,6 @@ const exportList = Object.keys(userCoins).map(id => {
       <div style={{ background: '#1c1c1e', borderRadius: 16, border: '1px solid #2c2c2e', overflow: 'hidden' }}>
         {[
           { icon: '👤', label: 'Editar perfil', action: onEditProfile },
-          { icon: '📤', label: 'Exportar coleção', action: onExport },
           { icon: '🚪', label: 'Sair da conta', danger: true, action: onLogout },
         ].map((item, i) => (
           <button

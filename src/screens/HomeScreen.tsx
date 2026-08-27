@@ -9,6 +9,7 @@ interface HomeScreenProps {
   userProfile: UserProfile | null
   onTabChange: (tab: Tab) => void
   onCoinClick: (coin: Coin) => void
+  isDesktop?: boolean
 }
 
 export function HomeScreen({
@@ -16,6 +17,7 @@ export function HomeScreen({
   userProfile,
   onTabChange,
   onCoinClick,
+  isDesktop = false,
 }: HomeScreenProps) {
   // 1. Pega os países selecionados no perfil
   const activeCountries =
@@ -88,15 +90,9 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 8 }}>
       {/* 2. PRIMEIRO BLOCO: CABEÇALHO LADO A LADO */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-        <div>
-          <p style={{ fontSize: 16, color: 'rgb(255, 255, 255)', margin: '0 0 2px' }}>Bem-vindo(a) de volta,</p>
-          <h1 style={{ fontFamily: "'Roboto Slab', serif", fontSize: 28, fontWeight: 700, margin: 0, color: '#ffffff' }}>
-            {userProfile?.name || 'Colecionador'}
-          </h1>
-        </div>
-
-        <button
+      
+      <div style={{ display: 'flex',  justifyContent: isDesktop ? 'flex-start' : 'space-between', alignItems: isDesktop ? 'center' : 'flex-start', width: '100%', gap: 24 }}>
+               <button
           onClick={() => onTabChange('stats')}
           style={{
             background: 'linear-gradient(135deg, #1c1c1e, #2c2c2e)',
@@ -118,7 +114,129 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
             #{myRank}
           </span>
         </button>
+        <div>
+          <p style={{ fontSize: 16, color: 'rgb(255, 255, 255)', margin: '0 0 2px' }}>Bem-vindo(a) de volta,</p>
+          <h1 style={{ fontFamily: "'Roboto Slab', serif", fontSize: 28, fontWeight: 700, margin: 0, color: '#ffffff' }}>
+            {userProfile?.name || 'Colecionador'}
+          </h1>
+        </div>
+
+
       </div>
+
+      {isDesktop && (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gap: 16,
+    }}
+  >
+    <div
+      style={{
+        background: '#1c1c1e',
+        border: '1px solid #2c2c2e',
+        borderRadius: 18,
+        padding: 18,
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: 11,
+          color: '#8e8e93',
+          textTransform: 'uppercase',
+        }}
+      >
+        Coleções ativas
+      </p>
+
+      <p
+        style={{
+          margin: '6px 0 0',
+          fontSize: 26,
+          fontWeight: 700,
+          color: '#ffffff',
+          fontFamily: "'Roboto Slab', serif",
+        }}
+      >
+        {activeCountries.length}
+      </p>
+    </div>
+
+    <div
+      style={{
+        background: '#1c1c1e',
+        border: '1px solid #2c2c2e',
+        borderRadius: 18,
+        padding: 18,
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: 11,
+          color: '#8e8e93',
+          textTransform: 'uppercase',
+        }}
+      >
+        Moedas diferentes
+      </p>
+
+      <p
+        style={{
+          margin: '6px 0 0',
+          fontSize: 26,
+          fontWeight: 700,
+          color: '#ffffff',
+          fontFamily: "'Roboto Slab', serif",
+        }}
+      >
+        {
+          Object.values(userCoins).filter(
+            coin => coin.status === 'owned'
+          ).length
+        }
+      </p>
+    </div>
+
+    <div
+      style={{
+        background: '#1c1c1e',
+        border: '1px solid #2c2c2e',
+        borderRadius: 18,
+        padding: 18,
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: 11,
+          color: '#8e8e93',
+          textTransform: 'uppercase',
+        }}
+      >
+        Buscando
+      </p>
+
+      <p
+        style={{
+          margin: '6px 0 0',
+          fontSize: 26,
+          fontWeight: 700,
+          color: '#FFB300',
+          fontFamily: "'Roboto Slab', serif",
+        }}
+      >
+        {
+          Object.values(userCoins).filter(
+            coin => coin.status === 'wanted'
+          ).length
+        }
+      </p>
+    </div>
+  </div>
+)}
 
       {/* 3. SEGUNDO BLOCO: MINHAS COLEÇÕES */}
 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -138,7 +256,7 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
     style={{
       display: 'grid',
       gridTemplateColumns:
-        window.innerWidth >= 900
+        isDesktop
           ? 'repeat(2, minmax(0, 1fr))'
           : '1fr',
       gap: 14,
