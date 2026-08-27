@@ -486,71 +486,27 @@ const handlePDF = () => {
   printWindow.document.close()
 }
 
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 99999,
-        background: '#0c0c0e',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100dvh',
-          width: '100%',
-          background: '#0c0c0e',
-          color: '#ffffff',
-          boxSizing: 'border-box',
-          fontFamily: "'Inter', sans-serif"
-        }}
-      >
-        {/* Top bar FIXA no topo */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '14px 20px 10px',
-            borderBottom: '1px solid #2c2c2e',
-            flexShrink: 0,
-            background: 'rgba(12,12,14,0.96)',
-            zIndex: 10,
-          }}
-        >
-          <button 
-            onClick={onBack} 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: '#4DA3FF', 
-              fontSize: 14, 
-              fontWeight: 600, 
-              cursor: 'pointer',
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4
-            }}
-          >
-           ← Voltar
-          </button>
-        </div>
+return (
+  <div
+    style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 20,
+      width: '100%',
+      color: '#ffffff',
+      boxSizing: 'border-box',
+      fontFamily: "'Inter', sans-serif",
+    }}
+  >
+
 
         {/* Corpo com ROLAGEM INDEPENDENTE */}
         <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            padding: '20px 20px 24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 20
+         style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+          width: '100%',
           }}
         >
           <div style={{ textAlign: 'center' }}>
@@ -604,7 +560,17 @@ const handlePDF = () => {
             <img src="/logo.png" alt="Ícone Pataca" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
+          <div
+             style={{
+              display: 'grid',
+              gridTemplateColumns:
+              window.innerWidth >= 900
+               ? 'repeat(2, minmax(0, 1fr))'
+               : '1fr',
+              gap: 16,
+              width: '100%',
+          }}
+        >
             <div 
               style={{ 
                 background: '#1c1c1e', 
@@ -683,7 +649,7 @@ const handlePDF = () => {
           </div>
         </div>
       </div>
-    </div>
+  
   )
 }
 

@@ -9,13 +9,14 @@ export const ALL_COLLECTIONS = Array.from(
   new Set(ALL_COINS.map(coin => coin.country).filter(Boolean))
 )
 
-interface ProfileScreenProps {
-  userCoins: Record<string, UserCoin>
-  userProfile: UserProfile | null
-  onLogout: () => void
-  onEditProfile: () => void
-  onUpdateAvatar: (avatarSrc: string) => void
-}
+export function ProfileScreen({
+  userCoins,
+  userProfile,
+  onLogout,
+  onEditProfile,
+  onUpdateAvatar,
+  onExport,
+}: ProfileScreenProps) 
 
 export function ProfileScreen({
   userCoins,
@@ -23,6 +24,7 @@ export function ProfileScreen({
   onLogout,
   onEditProfile,
   onUpdateAvatar,
+  onExport,
 }: {
   userCoins: Record<string, UserCoin>
   userProfile: UserProfile | null
@@ -31,7 +33,6 @@ export function ProfileScreen({
   onUpdateAvatar: (avatarSrc: string) => void
 }) {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
-  const [showExportPage, setShowExportPage] = useState(false)
 
 const ownedCount = Object.values(userCoins).reduce((total, userCoin) => {
   if (userCoin.status !== 'owned') {
@@ -159,7 +160,7 @@ const exportList = Object.keys(userCoins).map(id => {
       <div style={{ background: '#1c1c1e', borderRadius: 16, border: '1px solid #2c2c2e', overflow: 'hidden' }}>
         {[
           { icon: '👤', label: 'Editar perfil', action: onEditProfile },
-          { icon: '📤', label: 'Exportar coleção', action: () => setShowExportPage(true) },
+          { icon: '📤', label: 'Exportar coleção', action: onExport },
           { icon: '🚪', label: 'Sair da conta', danger: true, action: onLogout },
         ].map((item, i) => (
           <button
@@ -296,15 +297,7 @@ const exportList = Object.keys(userCoins).map(id => {
         </div>
       )}
 
-      {/* TELA / MODAL DE EXPORTAR COLEÇÃO */}
-      {showExportPage && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 120, overflowY: 'auto', background: '#f8f9fa' }}>
-          <ExportPage
-            userCollection={exportList}
-            onBack={() => setShowExportPage(false)}
-          />
-        </div>
-      )}
+
 
       <p style={{ textAlign: 'center', fontSize: 11, color: '#8e8e93', margin: 0 }}>
         Pataca v1.0.0

@@ -285,8 +285,19 @@ const countryOwnedCount = ALL_COINS
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {displayedCoins.map(coin => {
+
+        <div
+  style={{
+    display: 'grid',
+    gridTemplateColumns:
+      window.innerWidth >= 900
+        ? 'repeat(3, minmax(0, 1fr))'
+        : '1fr',
+    gap: 14,
+  }}
+>
+  {displayedCoins.map(coin => {
+        
             const uc = userCoins[coin.id]
             const quantity = uc?.quantity || 1
 
@@ -298,18 +309,26 @@ const countryOwnedCount = ALL_COINS
                   position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 14,
+                  gap: 12,
                   background: '#1c1c1e',
                   border: '1px solid #2c2c2e',
-                  borderRadius: 14,
-                  padding: '12px 14px',
+                  borderRadius: 16,
+                  padding: window.innerWidth >= 900
+                        ? '16px 18px'
+                        : '12px 14px',
                   cursor: 'pointer',
                   textAlign: 'left',
+                  minHeight: window.innerWidth >= 900 ? 86 : 'auto',
+                  width: '100%',
                 }}
               >
                 {/* Visual da Moeda */}
                 <div style={{ position: 'relative' }}>
-                  <CoinVisual coin={coin} userStatus={uc?.status ?? null} size={48} />
+                  <CoinVisual
+                  coin={coin}
+                   userStatus={uc?.status ?? null}
+                   size={window.innerWidth >= 900 ? 64 : 48}
+                   />
                 </div>
 
                 {/* Informações da Moeda */}

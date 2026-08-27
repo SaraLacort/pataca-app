@@ -228,10 +228,16 @@ function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => vo
 function DesktopNav({
   active,
   onChange,
+  onExport,
+  isExportActive,
 }: {
   active: Tab
   onChange: (t: Tab) => void
+  onExport: () => void
+  isExportActive: boolean
 }) {
+
+
   const tabs: { id: Tab; icon: string; label: string }[] = [
     { id: 'home', icon: '🏠', label: 'Home' },
     { id: 'catalog', icon: '📚', label: 'Catálogo' },
@@ -239,6 +245,26 @@ function DesktopNav({
     { id: 'stats', icon: '🏆', label: 'Ranking' },
     { id: 'profile', icon: '👤', label: 'Perfil' },
   ]
+
+  const menuButtonStyle = (
+    isActive: boolean
+  ): React.CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: 12,
+    border: 'none',
+    background: isActive
+      ? 'rgba(77,163,255,0.15)'
+      : 'transparent',
+    color: isActive ? '#4DA3FF' : '#8e8e93',
+    cursor: 'pointer',
+    textAlign: 'left',
+    fontSize: 14,
+    fontWeight: 600,
+  })
 
   return (
     <aside
@@ -293,29 +319,15 @@ function DesktopNav({
         }}
       >
         {tabs.map(tab => {
-          const isActive = active === tab.id
+          const isActive =
+           active === tab.id &&
+            !(tab.id === 'profile' && isExportActive)
 
           return (
             <button
               key={tab.id}
               onClick={() => onChange(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                padding: '12px 14px',
-                borderRadius: 12,
-                border: 'none',
-                background: isActive
-                  ? 'rgba(77,163,255,0.15)'
-                  : 'transparent',
-                color: isActive ? '#4DA3FF' : '#8e8e93',
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontSize: 14,
-                fontWeight: 600,
-              }}
+              style={menuButtonStyle(isActive)}
             >
               <span style={{ fontSize: 20 }}>
                 {tab.icon}
@@ -325,17 +337,19 @@ function DesktopNav({
             </button>
           )
         })}
+
+        <button
+          onClick={onExport}
+          style={menuButtonStyle(isExportActive)}
+        >
+          <span style={{ fontSize: 20 }}>📤</span>
+
+          <span>Exportar coleção</span>
+        </button>
       </div>
     </aside>
   )
 }
-// ─── AuthScreen ───────────────────────────────────────────────────────────────
-
-interface UserProfile {
-  name: string
-  email: string
-}
-
 
 // ─── App Component (Main) ───────────────────────────────────────────────────
 
@@ -507,13 +521,16 @@ useEffect(() => {
   }, [tabHistory, selectedCoin])
 
   // Troca de abas direta sem disparar recarregamento
-  const handleTabChange = useCallback((newTab: Tab) => {
-    setIsEditingProfile(false)
-    if (newTab !== activeTab) {
-      setTabHistory(prev => [...prev, newTab])
-      setActiveTab(newTab)
-    }
-  }, [activeTab])
+const handleTabChange = useCallback((newTab: Tab) => {
+  // Sempre que trocar de aba, fecha telas internas do perfil
+  setIsEditingProfile(false)
+  setShowExportPage(false)
+
+  if (newTab !== activeTab) {
+    setTabHistory(prev => [...prev, newTab])
+    setActiveTab(newTab)
+  }
+}, [activeTab])
 
   // Salva alterações do perfil no Supabase e no estado local
   const handleSaveProfile = useCallback(async (updatedProfile: UserProfile) => {
@@ -891,21 +908,27 @@ const handleReorderCountries = useCallback(
     catalog: <CatalogScreen userCoins={userCoins} onCoinClick={handleOpenCoinDetail} onUpdateStatus={handleUpdateStatus} />,
     collection: <CollectionScreen onReorderCountries={handleReorderCountries} userCoins={userCoins} userProfile={userProfile} onCoinClick={handleOpenCoinDetail} />,
     stats: <RankingScreen userCoins={userCoins} userProfile={userProfile} />,
-    profile: isEditingProfile ? (
-      <EditProfileScreen
-        profile={userProfile}
-        userProfile={userProfile}
-        userCoins={userCoins}
-        onSave={handleSaveProfile}
-        onCancel={() => setIsEditingProfile(false)}
-      />
-    ) : (
-      <ProfileScreen
-        userCoins={userCoins}
-        userProfile={userProfile}
-        onLogout={handleLogout}
-        onEditProfile={() => setIsEditingProfile(true)}
-      />
+   profile: showExportPage ? (
+  <ExportPage
+    userCollection={userCoins}
+    onBack={() => setShowExportPage(false)}
+  />
+) : isEditingProfile ? (
+  <EditProfileScreen
+    profile={userProfile}
+    userProfile={userProfile}
+    userCoins={userCoins}
+    onSave={handleSaveProfile}
+    onCancel={() => setIsEditingProfile(false)}
+  />
+) : (
+  <ProfileScreen
+    userCoins={userCoins}
+    userProfile={userProfile}
+    onLogout={handleLogout}
+    onEditProfile={() => setIsEditingProfile(true)}
+    onExport={() => setShowExportPage(true)}
+  />
     ),
   }
 
@@ -913,12 +936,180 @@ const handleReorderCountries = useCallback(
 // 1. Carregando
 if (isAuthChecking) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100dvh', background: '#0c0c0e', color: '#d4af37', fontFamily: "'Roboto Slab', serif", fontSize: 20 }}>
-      Pataca...
+    <div
+      style={{
+        width: '100%',
+        height: '100dvh',
+        background: '#0c0c0e',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      <style>
+        {`
+@keyframes coinMove {
+  0% {
+    transform:
+      translateY(0px)
+      rotate(-4deg)
+      scale(1);
+  }
+
+  25% {
+    transform:
+      translateY(-10px)
+      rotate(2deg)
+      scale(1.03);
+  }
+
+  50% {
+    transform:
+      translateY(-16px)
+      rotate(5deg)
+      scale(1.06);
+  }
+
+  75% {
+    transform:
+      translateY(-10px)
+      rotate(-2deg)
+      scale(1.03);
+  }
+
+  100% {
+    transform:
+      translateY(0px)
+      rotate(-4deg)
+      scale(1);
+  }
+}
+
+          @keyframes loadingProgress {
+            0% {
+              transform: translateX(-100%);
+            }
+
+            100% {
+              transform: translateX(350%);
+            }
+          }
+
+          @keyframes coinGlow {
+            0%, 100% {
+              opacity: 0.3;
+              transform: scale(0.9);
+            }
+
+            50% {
+              opacity: 0.8;
+              transform: scale(1.1);
+            }
+          }
+        `}
+      </style>
+
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 400,
+          padding: 24,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        {/* ÁREA DA MOEDA */}
+        <div
+          style={{
+            width: 180,
+            height: 180,
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* BRILHO */}
+          <div
+            style={{
+              position: 'absolute',
+              width: 145,
+              height: 145,
+              borderRadius: '50%',
+              background:
+                'radial-gradient(circle, rgba(212,175,55,0.40) 0%, rgba(212,175,55,0.10) 45%, transparent 70%)',
+              filter: 'blur(12px)',
+              animation: 'coinGlow 2s ease-in-out infinite',
+            }}
+          />
+
+          {/* MOEDA */}
+          <img
+            src="/pataca-loading.png"
+            alt="Pataca"
+            style={{
+              width: 145,
+              height: 145,
+              objectFit: 'contain',
+              position: 'relative',
+              zIndex: 2,
+              animation: 'coinMove 2.8s ease-in-out infinite',
+            }}
+          />
+        </div>
+
+        {/* NOME */}
+        <h1
+          style={{
+            margin: '8px 0 0',
+            fontFamily: "'Roboto Slab', serif",
+            fontSize: 34,
+            fontWeight: 700,
+            color: '#D4AF37',
+          }}
+        >
+          Pataca
+        </h1>
+
+        <p
+          style={{
+            margin: '8px 0 22px',
+            fontSize: 13,
+            color: '#8e8e93',
+          }}
+        >
+          Carregando seu acervo...
+        </p>
+
+        {/* BARRA DE CARREGAMENTO */}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: 300,
+            height: 7,
+            borderRadius: 10,
+            background: '#2c2c2e',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              width: '35%',
+              height: '100%',
+              borderRadius: 10,
+              background:
+                'linear-gradient(90deg, #9A7410, #D4AF37, #FFE082)',
+              animation: 'loadingProgress 1.4s ease-in-out infinite',
+            }}
+          />
+        </div>
+      </div>
     </div>
   )
 }
-
 // 2. Recuperando senha
 if (isResettingPassword) {
   return (
@@ -956,12 +1147,19 @@ return (
     }}
   >
     
-     {isDesktop && (
-  <DesktopNav
-    active={activeTab}
-    onChange={handleTabChange}
-  />
+{isDesktop && (
+<DesktopNav
+  active={activeTab}
+  onChange={handleTabChange}
+  onExport={() => {
+    setShowExportPage(true)
+    setIsEditingProfile(false)
+    setActiveTab('profile')
+  }}
+  isExportActive={showExportPage}
+/>
 )}
+
 <div
   style={{
     flex: 1,
@@ -973,71 +1171,100 @@ return (
   }}
 >
    
-      {/* Top bar */}
-      <div
+{!isDesktop && (
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '14px 20px 10px',
+      borderBottom: '1px solid #2c2c2e',
+      flexShrink: 0,
+      background: 'rgba(12,12,14,0.96)',
+      zIndex: 10,
+    }}
+  >
+    {activeTab !== 'home' ? (
+      <button
+        onClick={handleGoBack}
         style={{
+          background: 'none',
+          border: 'none',
+          color: '#4DA3FF',
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: 'pointer',
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '14px 20px 10px',
-          borderBottom: '1px solid #2c2c2e',
-          flexShrink: 0,
-          background: 'rgba(12,12,14,0.96)',
-          zIndex: 10,
+          gap: 4,
+          padding: 0,
         }}
       >
-        {activeTab !== 'home' ? (
-          <button
-            onClick={handleGoBack}
+        ← Voltar
+      </button>
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div
+          style={{
+            width: 45,
+            height: 45,
+            borderRadius: '50%',
+            background:
+              'linear-gradient(135deg, rgb(163, 157, 137), rgb(78, 75, 67))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <img
+            src="/logo.png"
+            alt="Ícone Pataca"
             style={{
-              background: 'none',
-              border: 'none',
-              color: '#4DA3FF',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: 0,
+              width: 50,
+              height: 50,
+              borderRadius: '50%',
+              objectFit: 'cover',
             }}
-          >
-            ← Voltar
-          </button>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div
-              style={{
-                width: 45,
-                height: 45,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgb(163, 157, 137), rgb(78, 75, 67))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 18,
-              }}
-            >
-              <img src="/logo.png" alt="Ícone Pataca" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover' }} />
-            </div>
-            <span style={{ fontFamily: "'Roboto Slab', serif", fontSize: 30, fontWeight: 700 }}>
-              Pataca
-            </span>
-          </div>
-        )}
-      </div>
+          />
+        </div>
 
-      {/* Conteúdo */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          padding: isDesktop ? '32px 40px' : '20px 20px 12px',
-        }}
-      >
-        {screens[activeTab]}
+        <span
+          style={{
+            fontFamily: "'Roboto Slab', serif",
+            fontSize: 30,
+            fontWeight: 700,
+          }}
+        >
+          Pataca
+        </span>
       </div>
+    )}
+  </div>
+)}
+
+
+{/* Conteúdo */}
+<div
+  style={{
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    padding: isDesktop
+      ? '36px 40px 48px'
+      : '20px 20px 12px',
+  }}
+>
+  <div
+    style={{
+      width: '100%',
+      maxWidth: isDesktop ? 1120 : '100%',
+      margin: '0 auto',
+    }}
+  >
+    {screens[activeTab]}
+  </div>
+</div>
 
       {/* Menu Inferior */}
 {!isDesktop && (
@@ -1057,42 +1284,7 @@ return (
         />
       )}
 
-      {showExportPage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 99999,
-            background: '#0c0c0e',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-            overflowY: 'auto',
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: isDesktop ? 1200 : 480,
-              minHeight: '100vh',
-              background: '#0c0c0e',
-              display: 'flex',
-              flexDirection: 'column',
-              boxSizing: 'border-box',
-            }}
-          >
-            <ExportPage
-              userCollection={userCoins}
-              onBack={() => setShowExportPage(false)}
-            />
-          </div>
-        </div>
-      )}
+
     </div>
   </div>
 )

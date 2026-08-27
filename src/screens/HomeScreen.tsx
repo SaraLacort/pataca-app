@@ -121,12 +121,30 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
       </div>
 
       {/* 3. SEGUNDO BLOCO: MINHAS COLEÇÕES */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h2 style={{ fontFamily: "'Roboto Slab', serif", fontSize: 16, fontWeight: 600, margin: 0, color: '#ffffff' }}>
-          Minhas Coleções
-        </h2>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+  <h2
+    style={{
+      fontFamily: "'Roboto Slab', serif",
+      fontSize: 16,
+      fontWeight: 600,
+      margin: 0,
+      color: '#ffffff',
+    }}
+  >
+    Minhas Coleções
+  </h2>
 
-        {collectionStatsByCountry.map(item => (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns:
+        window.innerWidth >= 900
+          ? 'repeat(2, minmax(0, 1fr))'
+          : '1fr',
+      gap: 14,
+    }}
+  >
+    {collectionStatsByCountry.map(item => (
           <div
             key={item.country}
             style={{
@@ -188,6 +206,7 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
           </div>
         ))}
       </div>
+    </div>
     </div>
   )
 }
