@@ -1,27 +1,181 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import type { Coin, CoinStatus, Tab, UserCoin, UserProfile as BaseUserProfile } from './types'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { ExportCollectionScreen } from './ExportCollectionScreen'
 import { supabase } from './lib/supabaseClient'
 import CoinDetailModal from './components/CoinDetailModal'
+import AvatarPicker from '../components/AvatarPicker'
 import { ALL_COINS } from './data/coins' 
+
 
 //Screens
 import HomeScreen from './screens/HomeScreen'
 import CatalogScreen from './screens/CatalogScreen'
 import CollectionScreen from './screens/CollectionScreen'
 import RankingScreen from './screens/RankingScreen'
-import ProfileScreen from './screens/ProfileScreen'
+import ProfileScreen, { ALL_COLLECTIONS } from './screens/ProfileScreen'
 import AuthScreen from './screens/AuthScreen'
 import ExportPage from './components/ExportPage'
 import EditProfileScreen from './screens/EditProfileScreen'
 import ResetPasswordScreen from './screens/ResetPasswordScreen'
 
+
+
+
+import avatar1 from '/avatars/avatar-01.png'
+import avatar2 from '/avatars/avatar-02.png'
+import avatar3 from '/avatars/avatar-03.png'
+import avatar4 from '/avatars/avatar-04.png'
+import avatar5 from '/avatars/avatar-05.png'
+import avatar6 from '/avatars/avatar-06.png'
+import avatar7 from '/avatars/avatar-07.png'
+import avatar8 from '/avatars/avatar-08.png'
+import avatar9 from '/avatars/avatar-09.png'
+import avatar10 from '/avatars/avatar-10.png'
 import logoVertical from './logo.png';
 
-interface UserProfile extends BaseUserProfile {
+type Tab = 'home' | 'catalog' | 'collection' | 'stats' | 'profile'
+type CoinStatus = 'owned' | 'wanted'
+
+interface Coin {
+  id: string
+  name: string
+  faceValue: string
+  country: string
+  year: number
+  decade: string
+  monetaryPlan: string
+  material: string
+  diameter: string
+  weight: string
+  thickness: string
+  edge: string
+  mint: string
+  mintage: string
+  commemorative: boolean
+  obverseDescription: string
+  reverseDescription: string
+  description: string
+  curiosities?: string
+}
+
+interface UserCoin {
+  coinId: string
+  status: CoinStatus
+  favorite: boolean
+  quantity: number
+  condition?: string
+  paidValue?: number
+  acquiredAt?: string
+  notes?: string
+}
+
+interface UserProfile {
+  name: string
+  email: string
   avatar?: string
   instagram?: string
   selectedCountries?: string[]
 }
+
+// ─── Planos Monetários & Filtros ─────────────────────────────────────────────
+
+const MONETARY_PLANS = [
+  'Todos',
+  'Real',
+  'Cruzeiro',
+  'Cruzeiro Novo',
+  'Cruzeiro Real',
+  'Cruzado Novo',
+  'Réis',
+  'Cruzado',
+  'Dólar Americano',
+  'Dólar Canadense',
+  'Real Mexicano',
+  'Peso Mexicano',
+  'Nuevo Peso / Peso Mexicano',
+  'Nuevo Peso',
+  'Primeiro Peso Dominicano',
+  'Franco Dominicano',
+  'Peso Oro',
+  'Peso Dominicano',
+  'Real Colombiano',
+  'Peso Colombiano',
+  'Primeiro Peso Chileno',
+  'Escudo',
+  'Segundo Peso Chileno',
+
+]
+
+// ─── Ranking de Colecionadores (Simulação) ─────────────────────────────────
+
+const LEADERBOARD_USERS = [
+  { rank: 1, name: 'Carlos Silva', coinsCount: 142, avatar: '' },
+  { rank: 2, name: 'Mariana Costa', coinsCount: 118, avatar: '' },
+  { rank: 3, name: 'Sara Lacort', coinsCount: 95, avatar: '' }, // Perfil atual
+  { rank: 4, name: 'Roberto Alves', coinsCount: 84, avatar: '' },
+  { rank: 5, name: 'Fernanda Lima', coinsCount: 62, avatar: '' },
+  { rank: 6, name: 'Lucas Mendes', coinsCount: 45, avatar: '' },
+  { rank: 7, name: 'Juliana Rocha', coinsCount: 30, avatar: '' },
+]
+
+// ─── ALL COINS ────────────────────────────────────────────────────────────────
+const DEFAULT_AVATARS_LIST = [
+  { id: 'avatar1', src: '/avatars/avatar-01.png', label: 'Avatar 1' },
+  { id: 'avatar2', src: '/avatars/avatar-02.png', label: 'Avatar 2' },
+  { id: 'avatar3', src: '/avatars/avatar-03.png', label: 'Avatar 3' },
+  { id: 'avatar4', src: '/avatars/avatar-04.png', label: 'Avatar 4' },
+  { id: 'avatar5', src: '/avatars/avatar-05.png', label: 'Avatar 5' },
+  { id: 'avatar6', src: '/avatars/avatar-06.png', label: 'Avatar 6' },
+  { id: 'avatar7', src: '/avatars/avatar-07.png', label: 'Avatar 7' },
+  { id: 'avatar8', src: '/avatars/avatar-08.png', label: 'Avatar 8' },
+  { id: 'avatar9', src: '/avatars/avatar-09.png', label: 'Avatar 9' },
+  { id: 'avatar10', src: '/avatars/avatar-10.png', label: 'Avatar 10' },
+]
+
+
+// ─── LISTA DE PAÍSES (COLOQUE AQUI) ──────────────────────────────────────────
+
+const ALL_COUNTRIES = Array.from(
+  new Set(ALL_COINS.map(c => c.country).filter(Boolean))
+).sort()
+
+const DEFAULT_COINS: Record<string, UserCoin> = {}
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getMaterialGradient(material: string): string {
+  const m = material.toLowerCase()
+  if (m.includes('prata')) return 'radial-gradient(circle at 32% 28%, #f4f4f6, #c8c8d0, #888894)'
+  if (m.includes('ouro')) return 'radial-gradient(circle at 32% 28%, #ffe566, #d4af37, #9a7a1a)'
+  if (m.includes('cobre') && !m.includes('cupr')) return 'radial-gradient(circle at 32% 28%, #f0a060, #cd7f32, #7a4010)'
+  if (m.includes('bronze')) return 'radial-gradient(circle at 32% 28%, #e0924a, #b87333, #6e3d10)'
+  if (m.includes('cuproníquel') || m.includes('cupro')) return 'radial-gradient(circle at 32% 28%, #d8dce8, #a8b4c0, #687888)'
+  if (m.includes('bimetálica') || m.includes('bimetali')) return 'radial-gradient(circle at 32% 28%, #e8e0b0, #c8c0a0, #909090)'
+  if (m.includes('alumínio') || m.includes('aluminio')) return 'radial-gradient(circle at 32% 28%, #e8e8ec, #c0c0c8, #888890)'
+  return 'radial-gradient(circle at 32% 28%, #dcdce4, #b0b0b8, #787880)'
+}
+
+function getMaterialRing(material: string): string {
+  const m = material.toLowerCase()
+  if (m.includes('prata')) return 'rgba(120,120,130,0.4)'
+  if (m.includes('ouro')) return 'rgba(160,120,10,0.5)'
+  if (m.includes('cobre') && !m.includes('cupr')) return 'rgba(120,60,10,0.5)'
+  if (m.includes('bronze')) return 'rgba(100,50,10,0.45)'
+  if (m.includes('bimetálica')) return 'rgba(120,110,50,0.4)'
+  return 'rgba(80,80,90,0.35)'
+}
+
+function getShortValue(faceValue: string): string {
+  return faceValue
+    .replace('R$ ', '')
+    .replace('NCr$ ', '')
+    .replace('Cr$ ', '')
+    .replace('Cz$ ', '')
+    .replace(' Réis', '')
+}
+
+
+
+
+
 
 // ─── BottomNav ────────────────────────────────────────────────────────────────
 
@@ -255,6 +409,7 @@ function DesktopLayout({
 // ─── App Component (Main) ───────────────────────────────────────────────────
 
 export default function App() {
+  const [user, setUser] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [tabHistory, setTabHistory] = useState<Tab[]>(['home'])
@@ -826,15 +981,7 @@ const handleReorderCountries = useCallback(
     userCoins={userCoins}
     userProfile={userProfile}
     onLogout={handleLogout}
-        onEditProfile={() => setIsEditingProfile(true)}
-    onUpdateAvatar={(avatarSrc: string) => {
-      if (userProfile) {
-        void handleSaveProfile({
-          ...userProfile,
-          avatar: avatarSrc,
-        })
-      }
-    }}
+    onEditProfile={() => setIsEditingProfile(true)}
     onExport={() => setShowExportPage(true)}
   />
     ),

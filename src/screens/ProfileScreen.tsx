@@ -3,20 +3,21 @@ import { ALL_COINS } from '../data/coins' // Ajuste o caminho das moedas conform
 import { UserCoin, UserProfile } from '../types' // Ajuste o caminho dos tipos
 import ExportPage from '../components/ExportPage' // Ajuste o caminho do componente ExportPage
 
+const AVATAR_OPTIONS = Array.from({ length: 10 }, (_, index) => {
+  const number = index + 1
+
+  return {
+    id: `avatar-${number}`,
+    src: `/avatars/avatar-${String(number).padStart(2, '0')}.png`,
+    label: `Avatar ${number}`,
+  }
+})
 
 // Pega todos os países únicos de ALL_COINS e cria a lista de coleções
 export const ALL_COLLECTIONS = Array.from(
   new Set(ALL_COINS.map(coin => coin.country).filter(Boolean))
 )
 
-export function ProfileScreen({
-  userCoins,
-  userProfile,
-  onLogout,
-  onEditProfile,
-  onUpdateAvatar,
-  onExport,
-}: ProfileScreenProps) 
 
 export function ProfileScreen({
   userCoins,
@@ -31,6 +32,7 @@ export function ProfileScreen({
   onLogout: () => void
   onEditProfile: () => void
   onUpdateAvatar: (avatarSrc: string) => void
+  onExport: () => void
 }) {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
 

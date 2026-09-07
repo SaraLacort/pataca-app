@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { ALL_COINS } from '../data/coins' // Ajuste o caminho se sua lista de moedas ficar em outro lugar
 import { UserCoin, UserProfile, Tab, Coin } from '../types' // Ajuste o caminho das suas interfaces/tipos
-import { CoinDetailModal } from '../components/CoinDetailModal'
+import CoinDetailModal from '../components/CoinDetailModal'
 import { LEADERBOARD_USERS } from '../data/leaderboard'
 
 interface HomeScreenProps {
@@ -83,7 +83,7 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
     // Ordena do maior para o menor acervo
     allList.sort((a, b) => b.coinsCount - a.coinsCount)
 
-    const index = allList.findIndex(u => u.isMe)
+    const index = allList.findIndex(u => 'isMe' in u && u.isMe === true)
     return index !== -1 ? index + 1 : '-'
   }, [userCoins, userProfile])
 

@@ -39,6 +39,8 @@ export interface UserCoin {
 export interface UserProfile {
   name: string
   email: string
+  avatar?: string
   instagram?: string
   selectedCollections?: string[]
+  selectedCountries?: string[]
 }

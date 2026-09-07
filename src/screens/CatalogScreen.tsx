@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { ALL_COINS } from '../data/coins' // Ajuste o caminho conforme o seu projeto
 import { UserCoin, Coin, CoinStatus } from '../types' // Ajuste o caminho dos tipos
 import CoinCard from '../components/CoinCard' // Ajuste o caminho do CoinCard se necessário
-import { CoinDetailModal } from '../components/CoinDetailModal'
+import CoinDetailModal from '../components/CoinDetailModal'
 import { MONETARY_PLANS } from '../data/constants'
 
 

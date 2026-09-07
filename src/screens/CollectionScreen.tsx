@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { ALL_COINS } from '../data/coins'
 import { UserCoin, UserProfile, Coin } from '../types'
 import CoinVisual from '../components/CoinVisual'
-import { CoinDetailModal } from '../components/CoinDetailModal'
+import CoinDetailModal from '../components/CoinDetailModal'
 import { MONETARY_PLANS } from '../data/constants'
 
 interface CollectionScreenProps {
