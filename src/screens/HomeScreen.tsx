@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react'
 import { ALL_COINS } from '../data/coins' // Ajuste o caminho se sua lista de moedas ficar em outro lugar
 import { UserCoin, UserProfile, Tab, Coin } from '../types' // Ajuste o caminho das suas interfaces/tipos
-import CoinDetailModal from '../components/CoinDetailModal'
-import { LEADERBOARD_USERS } from '../data/leaderboard'
+import { useRanking } from '../hooks/useRanking'
 
 interface HomeScreenProps {
   userCoins: Record<string, UserCoin>
@@ -58,34 +57,7 @@ const uniqueOwned = countryCoins.filter(
     })
   }, [activeCountries, userCoins])
 
-  // 3. CALCULA A POSIÇÃO REAL NO RANKING
-  const myRank = useMemo(() => {
-const myOwnedCount = Object.values(userCoins).filter(
-  u => u.status === 'owned'
-).length
-
-const myName = userProfile?.name?.trim() || 'Colecionador'
-
-    const mockUsers = [
-      { name: 'Carlos Silva', coinsCount: 142 },
-      { name: 'Mariana Costa', coinsCount: 118 },
-      { name: 'Roberto Alves', coinsCount: 84 },
-      { name: 'Fernanda Lima', coinsCount: 62 },
-      { name: 'Lucas Mendes', coinsCount: 45 },
-      { name: 'Juliana Rocha', coinsCount: 30 },
-    ]
-
-    const allList = [
-      ...mockUsers,
-      { name: myName, coinsCount: myOwnedCount, isMe: true }
-    ]
-
-    // Ordena do maior para o menor acervo
-    allList.sort((a, b) => b.coinsCount - a.coinsCount)
-
-    const index = allList.findIndex(u => 'isMe' in u && u.isMe === true)
-    return index !== -1 ? index + 1 : '-'
-  }, [userCoins, userProfile])
+  const { myRank, loading: rankingLoading, error: rankingError, demoCount } = useRanking(userCoins, userProfile)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 8 }}>
@@ -111,7 +83,10 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
             Ranking
           </span>
           <span style={{ fontFamily: "'Roboto Slab', serif", fontSize: 20, fontWeight: 700, color: '#ffffff' }}>
-            #{myRank}
+            {rankingLoading ? '…' : rankingError ? '—' : myRank ? `#${myRank}` : '—'}
+          </span>
+          <span style={{ fontSize: 10, color: '#8e8e93', marginTop: 4 }}>
+            {rankingError ? 'Indisponível' : !rankingLoading && demoCount > 0 ? ' ' : ''}
           </span>
         </button>
         <div>
