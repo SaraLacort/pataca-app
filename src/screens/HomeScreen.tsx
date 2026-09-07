@@ -257,7 +257,7 @@ const myName = userProfile?.name?.trim() || 'Colecionador'
       display: 'grid',
       gridTemplateColumns:
         isDesktop
-          ? 'repeat(2, minmax(0, 1fr))'
+          ? 'repeat(3, minmax(0, 1fr))'
           : '1fr',
       gap: 14,
     }}
