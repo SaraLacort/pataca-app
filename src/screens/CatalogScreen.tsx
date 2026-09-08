@@ -100,8 +100,8 @@ export function CatalogScreen({
   }, [search, planFilter, countryFilter, materialFilter, yearFilter, statusFilter, userCoins, hasActiveAdvancedFilters])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
+    <div className="web-catalog" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="web-screen-heading">
         <h1 style={{ fontFamily: "'Roboto Slab', serif", fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: 'var(--foreground, #ffffff)' }}>
           Catálogo Geral
         </h1>
@@ -111,7 +111,7 @@ export function CatalogScreen({
       </div>
 
       {/* Busca + Botão Filtros */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', width: '100%' }}>
+      <div className="web-catalog-search" style={{ display: 'flex', gap: 10, alignItems: 'center', width: '100%' }}>
         <div
           style={{
             display: 'flex',
@@ -150,6 +150,7 @@ export function CatalogScreen({
         </div>
 
         <button
+          className="web-filter-toggle"
           onClick={() => setShowFilters(!showFilters)}
           style={{
             display: 'flex',
@@ -173,8 +174,8 @@ export function CatalogScreen({
       </div>
 
       {/* Painel Expansível de Filtros */}
-      {showFilters && (
         <div
+          className={`web-catalog-filters ${showFilters ? 'is-open' : ''}`}
           style={{
             background: 'var(--card, #1c1c1e)',
             border: '1px solid var(--border, #2c2c2e)',
@@ -243,10 +244,9 @@ export function CatalogScreen({
             </div>
           )}
         </div>
-      )}
 
       {filtered.length === 0 && (
-        <div
+        <div className="web-catalog-empty"
           style={{
             textAlign: 'center',
             padding: '40px 20px',
@@ -269,7 +269,7 @@ export function CatalogScreen({
       )}
 
       {/* Grid de Moedas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+      <div className="web-catalog-results" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
         {filtered.map(coin => {
           const currentStatus = userCoins[coin.id]?.status
 

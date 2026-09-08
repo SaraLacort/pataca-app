@@ -18,25 +18,22 @@ const myOwnedCount = Object.values(userCoins).filter(
   const myName = userProfile?.name?.trim() || 'Colecionador'
   const myAvatar = userProfile?.avatar || '/avatars/avatar-01.png'
 
-  const { entries, myRank, realCount, demoCount, loading, error, reload } = useRanking(userCoins, userProfile)
+  const { entries, myRank, loading, error } = useRanking(userCoins, userProfile, true)
   const me = entries.find(entry => entry.isMe)
   const leaderboard = me && me.rank > 10
     ? [...entries.slice(0, 9), me]
     : entries.slice(0, 10)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 16 }}>
-      <div>
+    <div className="web-ranking" style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 16 }}>
+      <div className="web-screen-heading">
         <h1 style={{ fontFamily: "'Roboto Slab', serif", fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#ffffff' }}>
           Ranking de Colecionadores
         </h1>
-        <p style={{ margin: 0, fontSize: 13, color: '#8e8e93' }}>
-          Classificação por moedas diferentes marcadas como “Tenho”
-        </p>
       </div>
 
       {/* CARD COM A POSIÇÃO ATUAL DO USUÁRIO */}
-      <div
+      <div className="web-ranking-self"
         style={{
           background: 'linear-gradient(135deg, #1c1c1e, #2c2c2e)',
           borderRadius: 18,
@@ -68,16 +65,17 @@ const myOwnedCount = Object.values(userCoins).filter(
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={{ margin: 0, fontFamily: "'Roboto Slab', serif", fontSize: 18, fontWeight: 700, color: '#ffffff' }}>
-            {myOwnedCount}
+            {me?.coinsCount ?? myOwnedCount}
           </p>
           <p style={{ margin: 0, fontSize: 11, color: '#8e8e93' }}>moedas</p>
         </div>
       </div>
 
-    
+      {loading && <p role="status" style={{ margin: 0, fontSize: 12, color: '#8e8e93' }}>Carregando participantes...</p>}
+      {error && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#ff9999' }}>{error}</p>}
 
       {/* LISTA DAS POSIÇÕES VISÍVEIS */}
-      <div style={{ background: '#1c1c1e', borderRadius: 18, border: '1px solid #2c2c2e', overflow: 'hidden' }}>
+      <div className="web-ranking-list" style={{ background: '#1c1c1e', borderRadius: 18, border: '1px solid #2c2c2e', overflow: 'hidden' }}>
         {!loading && !error && leaderboard.map((u, i) => {
           const isMe = u.isMe
           const badgeColor =
@@ -123,6 +121,7 @@ const myOwnedCount = Object.values(userCoins).filter(
               <div style={{ flex: 1 }}>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: isMe ? 700 : 500, color: isMe ? '#D4AF37' : '#ffffff' }}>
                   {u.name} {isMe && '(Você)'}
+                  {u.isDemo && <span style={{ display: 'block', fontSize: 10, fontWeight: 400, color: '#8e8e93' }}>Demonstrativo</span>}
                 </p>
               </div>
 

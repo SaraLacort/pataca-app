@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { ALL_COINS } from '../data/coins' // Ajuste o caminho das moedas conforme seu projeto
 import { UserCoin, UserProfile } from '../types' // Ajuste o caminho dos tipos
-import ExportPage from '../components/ExportPage' // Ajuste o caminho do componente ExportPage
+import { useRanking } from '../hooks/useRanking'
 
 const AVATAR_OPTIONS = Array.from({ length: 10 }, (_, index) => {
   const number = index + 1
@@ -24,15 +24,17 @@ export function ProfileScreen({
   userProfile,
   onLogout,
   onEditProfile,
-  onUpdateAvatar,
+  onUpdateAvatar,
   onExport,
+  isDesktop = false,
 }: {
   userCoins: Record<string, UserCoin>
   userProfile: UserProfile | null
   onLogout: () => void
   onEditProfile: () => void
-  onUpdateAvatar: (avatarSrc: string) => void
+  onUpdateAvatar: (avatarSrc: string) => void
   onExport: () => void
+  isDesktop?: boolean
 }) {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
 
@@ -50,37 +52,28 @@ const ownedCount = Object.values(userCoins).reduce((total, userCoin) => {
   const customAvatar = userProfile?.avatar || null
   const initialLetter = userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : '👤'
 
-  // Converte o objeto userCoins para a lista usada na exportação
-const exportList = Object.keys(userCoins).map(id => {
-  const coinData = ALL_COINS.find(c => c.id === id)
-  const userCoin = userCoins[id]
-
-  return {
-    id,
-    name: coinData?.name || 'Moeda',
-    year: coinData?.year || '',
-    monetaryPlan: coinData?.monetaryPlan || '',
-    material: coinData?.material || '',
-    country: coinData?.country || 'Brasil',
-
-    quantity:
-      userCoin.status === 'owned'
-        ? Math.max(1, Number(userCoin.quantity) || 1)
-        : 0,
-
-    stateOfPreservation:
-      userCoin.condition || '-',
-
-    status: userCoin.status,
-  }
-})
+  const { entries, myRank, loading: rankingLoading, error: rankingError } = useRanking(
+    userCoins,
+    userProfile,
+    isDesktop,
+  )
+  const me = entries.find(entry => entry.isMe)
+  const rankingEntries = me && me.rank > 10
+    ? [...entries.slice(0, 9), me]
+    : entries.slice(0, 10)
+  const profileActions = [
+    { icon: '👤', label: 'Editar perfil', action: onEditProfile },
+    ...(!isDesktop ? [{ icon: '📤', label: 'Exportar coleção', action: onExport }] : []),
+    { icon: '🚪', label: 'Sair da conta', danger: true, action: onLogout },
+  ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ textAlign: 'center', paddingTop: 16 }}>
+    <div className="web-profile" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="web-profile-left">
+      <div className="web-profile-identity" style={{ textAlign: 'center', paddingTop: 16 }}>
         <div style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 12px' }}>
           <button
-            onClick={() => setShowAvatarModal(false)}
+            onClick={() => setShowAvatarModal(true)}
             style={{
               width: 88,
               height: 88,
@@ -135,7 +128,58 @@ const exportList = Object.keys(userCoins).map(id => {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+      {isDesktop && (
+        <section className="web-profile-export" aria-labelledby="profile-export-title">
+          <div className="web-profile-export-icon" aria-hidden="true">
+            <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v11m-4-4 4 4 4-4" />
+              <path d="M5 15v5h14v-5" />
+            </svg>
+          </div>
+          <div>
+            <h2 id="profile-export-title">Exportar coleção</h2>
+            <p>Gere uma relação organizada do seu acervo para salvar, imprimir ou editar.</p>
+          </div>
+          <div className="web-profile-export-formats" aria-label="Formatos disponíveis">
+            <span><strong>PDF</strong> pronto para impressão</span>
+            <span><strong>CSV</strong> compatível com Excel</span>
+          </div>
+          <button type="button" onClick={onExport}>
+            Escolher formato <span aria-hidden="true">→</span>
+          </button>
+        </section>
+      )}
+
+      <div className="web-profile-actions" style={{ background: '#1c1c1e', borderRadius: 16, border: '1px solid #2c2c2e', overflow: 'hidden' }}>
+        {profileActions.map((item, i) => (
+          <button
+            key={item.label}
+            onClick={item.action}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              width: '100%',
+              padding: '14px 18px',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: i < profileActions.length - 1 ? '1px solid #2c2c2e' : 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              color: item.danger ? '#EF5350' : '#ffffff',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
+            <span style={{ marginLeft: 'auto', color: '#8e8e93' }}>›</span>
+          </button>
+        ))}
+      </div>
+
+      </div>
+
+      <div className="web-profile-right">
+      <div className="web-profile-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         {[
           { value: ownedCount, label: 'Tenho' },
           { value: wantedCount, label: 'Buscando' },
@@ -159,33 +203,41 @@ const exportList = Object.keys(userCoins).map(id => {
         ))}
       </div>
 
-      <div style={{ background: '#1c1c1e', borderRadius: 16, border: '1px solid #2c2c2e', overflow: 'hidden' }}>
-        {[
-          { icon: '👤', label: 'Editar perfil', action: onEditProfile },
-          { icon: '🚪', label: 'Sair da conta', danger: true, action: onLogout },
-        ].map((item, i) => (
-          <button
-            key={item.label}
-            onClick={item.action}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              width: '100%',
-              padding: '14px 18px',
-              background: 'transparent',
-              border: 'none',
-              borderBottom: i < 2 ? '1px solid #2c2c2e' : 'none',
-              cursor: 'pointer',
-              textAlign: 'left',
-              color: item.danger ? '#EF5350' : '#ffffff',
-            }}
-          >
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
-            <span style={{ marginLeft: 'auto', color: '#8e8e93' }}>›</span>
-          </button>
-        ))}
+      {isDesktop && (
+        <section className="web-profile-ranking" aria-labelledby="profile-ranking-title">
+          <header className="web-profile-ranking-heading">
+            <div>
+              <h2 id="profile-ranking-title">Ranking de colecionadores</h2>
+              <p>{rankingLoading ? 'Atualizando posição…' : rankingError ? 'Ranking indisponível' : myRank ? `Sua posição: #${myRank}` : 'Posição indisponível'}</p>
+            </div>
+            {!rankingLoading && !rankingError && me && (
+              <strong>{me.coinsCount} <span>moedas</span></strong>
+            )}
+          </header>
+
+          {rankingLoading && <p className="web-profile-ranking-message" role="status">Carregando participantes…</p>}
+          {rankingError && <p className="web-profile-ranking-message is-error" role="alert">{rankingError}</p>}
+
+          {!rankingLoading && !rankingError && (
+            <div className="web-profile-ranking-list">
+              {rankingEntries.map(entry => (
+                <div className={entry.isMe ? 'is-me' : ''} key={entry.id}>
+                  <span className="web-profile-rank-number">
+                    {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                  </span>
+                  <img src={entry.avatar} alt="" />
+                  <span className="web-profile-rank-name">
+                    <strong>{entry.name}{entry.isMe ? ' (Você)' : ''}</strong>
+                    {entry.isDemo && <small>Demonstrativo</small>}
+                  </span>
+                  <span className="web-profile-rank-count">{entry.coinsCount}<small> moedas</small></span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       </div>
 
       {/* Modal para Trocar o Avatar */}
@@ -299,10 +351,8 @@ const exportList = Object.keys(userCoins).map(id => {
       )}
 
 
+    
 
-      <p style={{ textAlign: 'center', fontSize: 11, color: '#8e8e93', margin: 0 }}>
-        Pataca v1.0.0
-      </p>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Coin, CoinStatus, Tab, UserCoin, UserProfile as BaseUserProfile } from './types'
 import { supabase } from './lib/supabaseClient'
 import CoinDetailModal from './components/CoinDetailModal'
+import DesktopLayout from './components/DesktopLayout'
 import { ALL_COINS } from './data/coins' 
 
 //Screens
@@ -67,188 +68,6 @@ function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => vo
         </button>
       ))}
     </nav>
-  )
-}
-
-// ─── DESKTOPNAV ────────────────────────────────────────────────────────────────
-function DesktopNav({
-  active,
-  onChange,
-  onExport,
-  isExportActive,
-}: {
-  active: Tab
-  onChange: (t: Tab) => void
-  onExport: () => void
-  isExportActive: boolean
-}) {
-
-
-  const tabs: { id: Tab; icon: string; label: string }[] = [
-    { id: 'home', icon: '🏠', label: 'Home' },
-    { id: 'catalog', icon: '📚', label: 'Catálogo' },
-    { id: 'collection', icon: '🪙', label: 'Minhas Coleções' },
-    { id: 'stats', icon: '🏆', label: 'Ranking' },
-    { id: 'profile', icon: '👤', label: 'Perfil' },
-  ]
-
-  const menuButtonStyle = (
-    isActive: boolean
-  ): React.CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    width: '100%',
-    padding: '12px 14px',
-    borderRadius: 12,
-    border: 'none',
-    background: isActive
-      ? 'rgba(77,163,255,0.15)'
-      : 'transparent',
-    color: isActive ? '#4DA3FF' : '#8e8e93',
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontSize: 14,
-    fontWeight: 600,
-  })
-
-  return (
-    <aside
-      style={{
-        width: 240,
-        minWidth: 240,
-        background: '#111113',
-        borderRight: '1px solid #2c2c2e',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '24px 16px',
-        boxSizing: 'border-box',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          marginBottom: 30,
-          padding: '0 8px',
-        }}
-      >
-        <img
-          src="/logo.png"
-          alt="Pataca"
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: '50%',
-            objectFit: 'cover',
-          }}
-        />
-
-        <span
-          style={{
-            fontFamily: "'Roboto Slab', serif",
-            fontSize: 24,
-            fontWeight: 700,
-            color: '#ffffff',
-          }}
-        >
-          Pataca
-        </span>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-        }}
-      >
-        {tabs.map(tab => {
-          const isActive =
-           active === tab.id &&
-            !(tab.id === 'profile' && isExportActive)
-
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onChange(tab.id)}
-              style={menuButtonStyle(isActive)}
-            >
-              <span style={{ fontSize: 20 }}>
-                {tab.icon}
-              </span>
-
-              <span>{tab.label}</span>
-            </button>
-          )
-        })}
-
-        <button
-          onClick={onExport}
-          style={menuButtonStyle(isExportActive)}
-        >
-          <span style={{ fontSize: 20 }}>📤</span>
-
-          <span>Exportar coleção</span>
-        </button>
-      </div>
-    </aside>
-  )
-}
-
-function DesktopLayout({
-  activeTab,
-  onTabChange,
-  onExport,
-  isExportActive,
-  children,
-}: {
-  activeTab: Tab
-  onTabChange: (tab: Tab) => void
-  onExport: () => void
-  isExportActive: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        width: '100%',
-        minHeight: '100dvh',
-        background: '#0c0c0e',
-        color: '#ffffff',
-      }}
-    >
-      <DesktopNav
-        active={activeTab}
-        onChange={onTabChange}
-        onExport={onExport}
-        isExportActive={isExportActive}
-      />
-
-      <main
-        style={{
-          flex: 1,
-          minWidth: 0,
-          height: '100dvh',
-          overflowY: 'auto',
-          background: '#0c0c0e',
-        }}
-      >
-        <div
-          style={{
-            width: '100%',
-            maxWidth: 1180,
-            margin: '0 auto',
-            padding: '40px 42px 56px',
-            boxSizing: 'border-box',
-          }}
-        >
-          {children}
-        </div>
-      </main>
-    </div>
   )
 }
 
@@ -823,6 +642,7 @@ const handleReorderCountries = useCallback(
   />
 ) : (
   <ProfileScreen
+    isDesktop={isDesktop}
     userCoins={userCoins}
     userProfile={userProfile}
     onLogout={handleLogout}
@@ -1038,14 +858,10 @@ if (!isLoggedIn) {
   if (isDesktop) {
   return (
     <DesktopLayout
+      userProfile={userProfile}
       activeTab={activeTab}
       onTabChange={handleTabChange}
       isExportActive={showExportPage}
-      onExport={() => {
-        setShowExportPage(true)
-        setIsEditingProfile(false)
-        setActiveTab('profile')
-      }}
     >
       {screens[activeTab]}
 

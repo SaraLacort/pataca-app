@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import type { UserCoin, UserProfile } from '../types'
 
@@ -74,24 +74,18 @@ export function buildRanking(
   return entries.map((entry, index) => ({ ...entry, rank: index + 1 }))
 }
 
-export function useRanking(userCoins: Record<string, UserCoin>, userProfile: UserProfile | null) {
-  const [snapshot, setSnapshot] = useState<{ rows: RankingRow[]; myId: string } | null>(null)
+// Cache em memória por conta: a Home lê a última consulta sem buscar o ranking.
+const rankingCache = new Map<string, RankingEntry[]>()
+
+export function useRanking(
+  userCoins: Record<string, UserCoin>,
+  userProfile: UserProfile | null,
+  refreshOnMount = false,
+) {
+  const openingData = useRef({ userCoins, userProfile })
+  const [entries, setEntries] = useState<RankingEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [revision, setRevision] = useState(0)
-  const reload = useCallback(() => setRevision(value => value + 1), [])
-
-  useEffect(() => {
-    // Também atualiza quando a pessoa volta de outra aba do navegador.
-    window.addEventListener('focus', reload)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') reload()
-    })
-    return () => {
-      window.removeEventListener('focus', reload)
-      subscription.unsubscribe()
-    }
-  }, [reload])
 
   useEffect(() => {
     let cancelled = false
@@ -100,30 +94,42 @@ export function useRanking(userCoins: Record<string, UserCoin>, userProfile: Use
       setError(null)
       try {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        if (cancelled) return
         if (sessionError) throw sessionError
         const myId = sessionData.session?.user.id
         if (!myId) throw new Error('Entre na sua conta para consultar o ranking.')
 
+        if (!refreshOnMount) {
+          setEntries(rankingCache.get(myId) ?? [])
+          return
+        }
+
         const rows: RankingRow[] = []
-        // Busca todas as páginas, inclusive se o servidor tiver um limite menor.
         let offset = 0
         while (!cancelled) {
           const { data, error: queryError } = await supabase
             .rpc('get_pataca_ranking')
             .order('user_id', { ascending: true })
             .range(offset, offset + 999)
+          if (cancelled) return
           if (queryError) throw queryError
           const page = (data ?? []) as RankingRow[]
           if (page.length === 0) break
           rows.push(...page)
           offset += page.length
         }
-        if (!cancelled) setSnapshot({ rows, myId })
+        if (!cancelled) {
+          const nextEntries = buildRanking(
+            rows, myId, openingData.current.userCoins, openingData.current.userProfile,
+          )
+          rankingCache.set(myId, nextEntries)
+          setEntries(nextEntries)
+        }
       } catch (cause) {
         console.error('Erro ao carregar ranking:', cause)
         if (!cancelled) {
-          setSnapshot(null)
-          setError('Não foi possível carregar o ranking. Tente novamente.')
+          setEntries([])
+          setError('Não foi possível carregar o ranking. Saia desta tela e abra-a novamente para tentar outra vez.')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -131,11 +137,8 @@ export function useRanking(userCoins: Record<string, UserCoin>, userProfile: Use
     }
     void load()
     return () => { cancelled = true }
-  }, [revision])
+  }, [refreshOnMount])
 
-  const entries = useMemo(() => snapshot
-    ? buildRanking(snapshot.rows, snapshot.myId, userCoins, userProfile)
-    : [], [snapshot, userCoins, userProfile])
   const me = entries.find(entry => entry.isMe)
   const realCount = entries.filter(entry => !entry.isDemo).length
   return {
@@ -145,6 +148,5 @@ export function useRanking(userCoins: Record<string, UserCoin>, userProfile: Use
     demoCount: entries.length - realCount,
     loading,
     error,
-    reload,
   }
 }

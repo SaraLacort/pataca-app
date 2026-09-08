@@ -91,7 +91,7 @@ const countryOwnedCount = ALL_COINS
   }, 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 16 }}>
+    <div className="web-collection" style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 16 }}>
       {/* CABEÇALHO */}
       <div>
         <h1 style={{ fontFamily: "'Roboto Slab', serif", fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#ffffff' }}>
@@ -232,7 +232,7 @@ const countryOwnedCount = ALL_COINS
 
 
       {/* ABAS DE STATUS (TENHO, BUSCO, FAVORITAS) */}
-      <div style={{ display: 'flex', gap: 8, background: '#1c1c1e', padding: 4, borderRadius: 12, border: '1px solid #2c2c2e' }}>
+      <div className="web-collection-tabs" style={{ display: 'flex', gap: 8, background: '#1c1c1e', padding: 4, borderRadius: 12, border: '1px solid #2c2c2e' }}>
         {(['owned', 'wanted', 'favorites'] as const).map(tabKey => {
           const isActive = activeStatusTab === tabKey
           return (
@@ -286,7 +286,7 @@ const countryOwnedCount = ALL_COINS
         </div>
       ) : (
 
-        <div
+        <div className="web-collection-grid"
   style={{
     display: 'grid',
     gridTemplateColumns:
@@ -303,6 +303,7 @@ const countryOwnedCount = ALL_COINS
 
             return (
               <button
+                className="web-collection-coin"
                 key={coin.id}
                 onClick={() => onCoinClick(coin)}
                 style={{

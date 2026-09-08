@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { ALL_COINS } from '../data/coins' // Ajuste o caminho se sua lista de moedas ficar em outro lugar
 import { UserCoin, UserProfile, Tab, Coin } from '../types' // Ajuste o caminho das suas interfaces/tipos
 import { useRanking } from '../hooks/useRanking'
+import CoinVisual from '../components/CoinVisual'
 
 interface HomeScreenProps {
   userCoins: Record<string, UserCoin>
@@ -57,7 +58,57 @@ const uniqueOwned = countryCoins.filter(
     })
   }, [activeCountries, userCoins])
 
-  const { myRank, loading: rankingLoading, error: rankingError, demoCount } = useRanking(userCoins, userProfile)
+  const { myRank, loading: rankingLoading, error: rankingError } = useRanking(userCoins, userProfile, true)
+
+  if (isDesktop) {
+    const owned = Object.values(userCoins).filter(coin => coin.status === 'owned').length
+    const wanted = Object.values(userCoins).filter(coin => coin.status === 'wanted').length
+    const collectionPreview = ALL_COINS.filter(coin => userCoins[coin.id]?.status === 'owned').slice(0, 4)
+    return (
+      <div className="web-overview">
+        <header className="web-page-heading">
+          <div className="web-greeting">
+            <div className="web-rank-badge" aria-label="Posição no ranking">
+              <span>Ranking</span><strong>{rankingLoading ? '…' : rankingError || !myRank ? '—' : `#${myRank}`}</strong>
+            </div>
+            <div><p>Bem-vindo(a), {userProfile?.name || 'Colecionador'}</p><h1>Visão geral do acervo</h1></div>
+          </div>
+        </header>
+        <div className="web-metrics">
+          <div><span>Moedas diferentes</span><strong>{owned.toLocaleString('pt-BR')}</strong></div>
+          <div><span>Buscando</span><strong className="web-gold">{wanted.toLocaleString('pt-BR')}</strong></div>
+          <div><span>Coleções ativas</span><strong>{activeCountries.length}</strong></div>
+        </div>
+        <div className="web-overview-columns">
+          <section className="web-panel">
+            <div className="web-panel-heading"><h2>Minhas coleções</h2><button className="web-text-button" onClick={() => onTabChange('collection')}>Abrir coleções →</button></div>
+            <div className="web-table-scroll">
+              <table className="web-collections-table">
+                <thead><tr><th>País</th><th>Tenho</th><th>Buscando</th><th>Progresso</th></tr></thead>
+                <tbody>{collectionStatsByCountry.map(item => (
+                  <tr key={item.country}>
+                    <th scope="row">{item.country}<small>{item.total.toLocaleString('pt-BR')} no catálogo</small></th>
+                    <td>{item.owned}</td><td>{item.wanted}</td>
+                    <td><div className="web-progress-label"><span>{item.pct}%</span></div><progress value={item.owned} max={item.total || 1} aria-label={`Progresso da coleção ${item.country}`} /></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </section>
+          <section className="web-panel web-collection-preview">
+            <div className="web-panel-heading"><h2>Da sua coleção</h2></div>
+            {collectionPreview.length ? collectionPreview.map(coin => (
+              <button className="web-coin-preview" key={coin.id} onClick={() => onCoinClick(coin)}>
+                <CoinVisual coin={coin} userStatus="owned" size={44} />
+                <span><strong>{coin.name}</strong><small>{coin.country} · {coin.year}</small></span>
+                <span aria-hidden="true">›</span>
+              </button>
+            )) : <div className="web-empty"><p>Seu acervo começa com a primeira moeda.</p><button className="web-text-button" onClick={() => onTabChange('catalog')}>Escolher no catálogo →</button></div>}
+          </section>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 8 }}>
@@ -84,9 +135,6 @@ const uniqueOwned = countryCoins.filter(
           </span>
           <span style={{ fontFamily: "'Roboto Slab', serif", fontSize: 20, fontWeight: 700, color: '#ffffff' }}>
             {rankingLoading ? '…' : rankingError ? '—' : myRank ? `#${myRank}` : '—'}
-          </span>
-          <span style={{ fontSize: 10, color: '#8e8e93', marginTop: 4 }}>
-            {rankingError ? 'Indisponível' : !rankingLoading && demoCount > 0 ? ' ' : ''}
           </span>
         </button>
         <div>
