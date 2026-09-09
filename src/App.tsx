@@ -15,6 +15,8 @@ import AuthScreen from './screens/AuthScreen'
 import ExportPage from './components/ExportPage'
 import EditProfileScreen from './screens/EditProfileScreen'
 import ResetPasswordScreen from './screens/ResetPasswordScreen'
+import PatacaLanding from './screens/Landing'
+import CoinImageUploader from './screens/CoinImageUploader'
 
 import logoVertical from './logo.png';
 
@@ -75,6 +77,7 @@ function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => vo
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home')
+  const [isEnteringApp, setIsEnteringApp] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [tabHistory, setTabHistory] = useState<Tab[]>(['home'])
   const [userCoins, setUserCoins] = useState<Record<string, UserCoin>>({})
@@ -82,9 +85,12 @@ export default function App() {
   useEffect(() => {userCoinsRef.current = userCoins}, [userCoins])
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
+  const [showAuthScreen, setShowAuthScreen] = useState(false)
+  const [showLanding, setShowLanding] = useState(true)
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true) // <-- Trava inicial
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [showExportPage, setShowExportPage] = useState(false)
+  const [showCoinImageUploader, setShowCoinImageUploader] =useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState<boolean>(() => {
   const hash = window.location.hash
   const search = window.location.search
@@ -517,38 +523,48 @@ const handleUpdateStatus = useCallback(
   }, [])
 
 // Login bem-sucedido
-  const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
-    setUserProfile(profile)
-    setActiveTab('home')
-    setTabHistory(['home'])
-    setIsLoggedIn(true)
+const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
+  setIsEnteringApp(true)
+  setUserProfile(profile)
+  setActiveTab('home')
+  setTabHistory(['home'])
+  setShowLanding(false)
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const userId = session?.user?.id
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-      if (!userId) return
+    const userId = session?.user?.id
 
-      const { data } = await supabase
+    if (!userId) {
+      setUserCoins({})
+      return
+    }
+
+    const { data } = await supabase
+      .from('user_coins')
+      .select('coins')
+      .eq('user_id', userId)
+      .single()
+
+    if (data?.coins) {
+      setUserCoins(data.coins)
+    } else {
+      await supabase
         .from('user_coins')
-        .select('coins')
-        .eq('user_id', userId)
-        .single()
+        .insert([{ user_id: userId, coins: {} }])
 
-      if (data && data.coins) {
-        setUserCoins(data.coins)
-      } else {
-        await supabase
-          .from('user_coins')
-          .insert([{ user_id: userId, coins: {} }])
-
-        setUserCoins({})
-      }
-    } catch (err) {
-      console.error('Erro ao carregar moedas:', err)
       setUserCoins({})
     }
-  }, [])
+  } catch (err) {
+    console.error('Erro ao carregar moedas:', err)
+    setUserCoins({})
+  } finally {
+    setIsLoggedIn(true)
+    setIsEnteringApp(false)
+  }
+}, [])
 
   // Logout definitivo
   const handleLogout = useCallback(async () => {
@@ -562,11 +578,13 @@ const handleUpdateStatus = useCallback(
     sessionStorage.clear()
 
     setIsLoggedIn(false)
+    setShowAuthScreen(false)
     setUserProfile(null)
     setUserCoins({})
     setIsEditingProfile(false)
     setActiveTab('home')
     setTabHistory(['home'])
+    setShowLanding(true)
   }, [])
 
 const handleReorderCountries = useCallback(
@@ -621,13 +639,28 @@ const handleReorderCountries = useCallback(
   },
   [userProfile]
 )
+
+const adminEmail = (
+  import.meta.env.VITE_ADMIN_EMAIL || ''
+)
+  .trim()
+  .toLowerCase()
+
+const canManageCoinImages =
+  adminEmail.length > 0 &&
+  userProfile?.email?.trim().toLowerCase() === adminEmail
+
   // 10. Telas do App (declaradas antes de qualquer return)
   const screens: Record<Tab, React.ReactNode> = {
     home: <HomeScreen  isDesktop={isDesktop} userCoins={userCoins} userProfile={userProfile} onTabChange={handleTabChange} onCoinClick={handleOpenCoinDetail} />,
     catalog: <CatalogScreen userCoins={userCoins} onCoinClick={handleOpenCoinDetail} onUpdateStatus={handleUpdateStatus} />,
     collection: <CollectionScreen onReorderCountries={handleReorderCountries} userCoins={userCoins} userProfile={userProfile} onCoinClick={handleOpenCoinDetail} />,
     stats: <RankingScreen userCoins={userCoins} userProfile={userProfile} />,
-   profile: showExportPage ? (
+    profile: showCoinImageUploader ? (
+  <CoinImageUploader
+    onBack={() => setShowCoinImageUploader(false)}
+     />
+     ) : showExportPage ? (
   <ExportPage
     userCollection={userCoins}
     onBack={() => setShowExportPage(false)}
@@ -656,13 +689,19 @@ const handleReorderCountries = useCallback(
       }
     }}
     onExport={() => setShowExportPage(true)}
+    
+    onManageCoinImages={
+    canManageCoinImages
+    ? () => setShowCoinImageUploader(true)
+    : undefined
+}
   />
     ),
   }
 
   // 11. Travas de tela (no final de tudo, antes do JSX principal)
 // 1. Carregando
-if (isAuthChecking) {
+if (isEnteringApp) {
   return (
     <div
       style={{
@@ -851,9 +890,32 @@ if (isResettingPassword) {
   )
 }
 
+if (showLanding) {
+  return (
+    <PatacaLanding
+      onLogin={() => setShowLanding(false)}
+      onAuthenticated={handleLoginSuccess}
+    />
+  )
+}
+
 // 3. Não logado
 if (!isLoggedIn) {
-  return <AuthScreen onLogin={handleLoginSuccess} />
+  if (showAuthScreen) {
+    return (
+      <AuthScreen
+        onLogin={handleLoginSuccess}
+        onBack={() => setShowLanding(true)}
+      />
+    )
+  }
+
+  return (
+    <PatacaLanding
+      onLogin={() => setShowAuthScreen(true)}
+      onAuthenticated={handleLoginSuccess}
+    />
+  )
 }
   if (isDesktop) {
   return (

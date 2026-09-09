@@ -4,9 +4,10 @@ import { UserProfile } from '../types' // Ajuste o caminho dos tipos
 
 interface AuthScreenProps {
   onLogin: (profile: UserProfile) => void
+  onBack?: () => void
 }
 
-export function AuthScreen({ onLogin }: AuthScreenProps) {
+export function AuthScreen({ onLogin, onBack }: AuthScreenProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -107,6 +108,23 @@ const handleForgotPassword = async () => {
         margin: '0 auto',
       }}
     >
+       {onBack && (
+         <button
+           type="button"
+           onClick={onBack}
+           style={{
+             alignSelf: 'flex-start',
+             marginBottom: 20,
+             background: 'none',
+             border: 'none',
+             color: '#D4AF37',
+             fontSize: 14,
+             cursor: 'pointer',
+           }}
+         >
+           ← Voltar ao início
+         </button>
+       )}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div
           style={{

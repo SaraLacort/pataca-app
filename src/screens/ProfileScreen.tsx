@@ -26,6 +26,7 @@ export function ProfileScreen({
   onEditProfile,
   onUpdateAvatar,
   onExport,
+  onManageCoinImages,
   isDesktop = false,
 }: {
   userCoins: Record<string, UserCoin>
@@ -34,6 +35,7 @@ export function ProfileScreen({
   onEditProfile: () => void
   onUpdateAvatar: (avatarSrc: string) => void
   onExport: () => void
+  onManageCoinImages?: () => void
   isDesktop?: boolean
 }) {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
@@ -63,6 +65,15 @@ const ownedCount = Object.values(userCoins).reduce((total, userCoin) => {
     : entries.slice(0, 10)
   const profileActions = [
     { icon: '👤', label: 'Editar perfil', action: onEditProfile },
+    ...(onManageCoinImages
+  ? [
+      {
+        icon: '🪙',
+        label: 'Preparar imagens de moedas',
+        action: onManageCoinImages,
+      },
+    ]
+  : []),
     ...(!isDesktop ? [{ icon: '📤', label: 'Exportar coleção', action: onExport }] : []),
     { icon: '🚪', label: 'Sair da conta', danger: true, action: onLogout },
   ]
@@ -103,9 +114,7 @@ const ownedCount = Object.values(userCoins).reduce((total, userCoin) => {
         <h2 style={{ fontFamily: "'Roboto Slab', serif", fontSize: 25, fontWeight: 700, margin: '0 0 4px', color: '#ffffff' }}>
           {userProfile?.name || 'Colecionador'}
         </h2>
-        <p style={{ margin: '0 0 4px', fontSize: 13, color: '#8e8e93' }}>
-          {userProfile?.email}
-        </p>
+
 
         {userProfile?.instagram && (
           <a
