@@ -7,6 +7,7 @@ export interface RankingRow {
   name: string
   avatar: string
   coins_count: number
+
 }
 
 export interface RankingEntry {
@@ -17,6 +18,7 @@ export interface RankingEntry {
   isMe: boolean
   isDemo: boolean
   rank: number
+
 }
 
 const INITIAL_SIZE = 200
@@ -24,12 +26,44 @@ const DEFAULT_AVATAR = '/avatars/avatar-01.png'
 
 // Os mesmos participantes demonstrativos em todas as telas e dispositivos.
 const DEMO_ENTRIES = Array.from({ length: INITIAL_SIZE }, (_, index) => {
-  const names = ['Carlos', 'Mariana', 'Roberto', 'Fernanda', 'Lucas', 'Juliana', 'Gabriel', 'Beatriz', 'Rodrigo', 'Camila']
-  const surnames = ['Silva', 'Costa', 'Alves', 'Lima', 'Mendes', 'Rocha', 'Oliveira', 'Santos', 'Pereira', 'Ferreira']
+  const names = [
+    'Carlos',
+    'Mariana',
+    'Roberto',
+    'Fernanda',
+    'Lucas',
+    'Juliana',
+    'Gabriel',
+    'Beatriz',
+    'Rodrigo',
+    'Camila',
+  ]
+
+  const surnames = [
+    'Silva',
+    'Costa',
+    'Alves',
+    'Lima',
+    'Mendes',
+    'Rocha',
+    'Oliveira',
+    'Santos',
+    'Pereira',
+    'Ferreira',
+  ]
+
+  const suffixes = ['moedas', 'numis', 'coleciona', 'acervo']
   const number = index + 1
+  const firstName = names[index % names.length]
+  const surname =
+    surnames[Math.floor(index / names.length) % surnames.length]
+
   return {
     id: `demo-${String(number).padStart(3, '0')}`,
-    name: `${names[index % names.length]} ${surnames[Math.floor(index / names.length) % surnames.length]}`,
+    name: `${firstName} ${surname}`,
+    instagram:
+      `@${firstName.toLowerCase()}.${surname.toLowerCase()}.` +
+      `${suffixes[index % suffixes.length]}${String(number).padStart(3, '0')}`,
     avatar: `/avatars/avatar-${String(index % 10 + 1).padStart(2, '0')}.png`,
     coinsCount: Math.max(3, 145 - index),
     isMe: false,

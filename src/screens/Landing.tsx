@@ -227,7 +227,7 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
   return (
     <div ref={rootRef} className="pl-root">
       <style>{`
-        .pl-root { height:100dvh; overflow-y:auto; scroll-behavior:smooth; background:${INK_950}; color:#fff; font-family:Inter,system-ui,sans-serif; }
+        .pl-root { width: 100%; max-width: 100vw; height: 100dvh; overflow-x: hidden; overflow-y: auto; scroll-behavior: smooth; background: ${INK_950}; color: #fff; font-family: Inter, system-ui, sans-serif; }        
         .pl-root * { box-sizing:border-box; }
         .pl-gold-text {
           background:linear-gradient(100deg,${GOLD_LIGHT} 0%,#f5d77a 25%,#fff3d0 50%,${GOLD_LIGHT} 75%,${GOLD} 100%);
@@ -253,27 +253,51 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
         className="fixed top-0 inset-x-0 z-50 transition-all duration-300"
         style={navScrolled ? { background: "rgba(10,10,10,.8)", backdropFilter: "blur(12px)", boxShadow: "0 4px 20px rgba(0,0,0,.4)" } : undefined}
       >
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-4 flex items-center justify-between">
-          <a href="#top" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Logo do Pataca" className="w-20 h-20 object-contain" />           
-         <span className="w-40 h-12 flex items-center font-bold tracking-tight"
-            style={{ fontSize: 40, lineHeight: 1 }}
-                 >Pataca</span>
-          </a>
-          <nav className="hidden md:flex items-center gap-1 text-sm">
-            {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="px-4 py-2 rounded-full transition hover:text-white" style={{ color: MUTED }}>{n.label}</a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={onLogin} className="hidden sm:inline px-3 py-2 text-sm font-semibold" style={{ color: "#fff" }}>Entrar</button>
-            <a href="#cadastro" className="px-5 py-2.5 rounded-full font-semibold text-sm transition" style={{ background: GOLD, color: INK_950 }}>Cadastrar grátis</a>
-          </div>
-        </div>
+<div className="w-full max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
+  <a href="#top" className="flex min-w-0 shrink items-center gap-2 sm:gap-2.5">
+    <img src="/logo.png" alt="Logo do Pataca" className="w-11 h-11 sm:w-20 sm:h-20 shrink-0 object-contain"/>
+    <span className="truncate text-2xl sm:text-[40px] font-bold tracking-tight leading-none">
+      Pataca
+    </span>
+  </a>
+
+  <nav className="hidden md:flex items-center gap-1 text-sm">
+    {NAV.map(n => (
+      <a
+        key={n.href}
+        href={n.href}
+        className="px-4 py-2 rounded-full transition hover:text-white"
+        style={{ color: MUTED }}
+      >
+        {n.label}
+      </a>
+    ))}
+  </nav>
+
+  <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+    <button
+      type="button"
+      onClick={onLogin}
+      className="hidden sm:inline px-3 py-2 text-sm font-semibold"
+      style={{ color: '#fff' }}
+    >
+      Entrar
+    </button>
+
+    <a
+      href="#cadastro"
+      className="whitespace-nowrap px-3 sm:px-5 py-2.5 rounded-full font-semibold text-xs sm:text-sm transition"
+      style={{ background: GOLD, color: INK_950 }}
+    >
+      <span className="sm:hidden">Cadastrar</span>
+      <span className="hidden sm:inline">Cadastrar grátis</span>
+    </a>
+  </div>
+</div>
       </header>
 
       {/* HERO */}
-      <section id="top" className="relative pt-32 pb-20 pl-grain">
+      <section id="top" className="relative pt-24 sm:pt-32 pb-14 sm:pb-20 pl-grain">
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div className="absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full blur-3xl" style={{ background: "rgba(212,175,55,.10)" }} />
           <div className="absolute top-40 -right-40 w-[460px] h-[460px] rounded-full blur-3xl" style={{ background: "rgba(193,154,46,.10)" }} />
@@ -282,13 +306,13 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
           <div className="pl-reveal">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs uppercase tracking-[0.2em] mb-6" style={{ border: `1px solid rgba(212,175,55,.4)`, color: GOLD_LIGHT }}>✦ Numismática Brasileira</span>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl leading-[1.08] font-bold">
-              Sua coleção de moedas, acesso<br /><span className="pl-gold-text">fácil e prático.</span>
+              Sua coleção organizada<br /><span className="pl-gold-text">na palma da mão.</span>
             </h1>
             <p className="mt-6 text-lg max-w-xl" style={{ color: MUTED }}>
-              O Pataca é o catálogo digital de moedas, com a praticidade que você merece.
+              O Pataca é o seu catálogo digital de moedas. Toda a sua história e cada relíquia, finalmente organizadas do jeito que você merece.
             </p>
             <div className="mt-9 flex flex-col sm:flex-row gap-4">
-              <a href="#cadastro" className="inline-flex justify-center items-center gap-2 px-7 py-4 rounded-full font-semibold transition" style={{ background: GOLD, color: INK_950 }}>Começar minha coleção →</a>
+              <a href="#cadastro" className="inline-flex justify-center items-center gap-2 px-7 py-4 rounded-full font-semibold transition" style={{ background: GOLD, color: INK_950 }}>Organizar minha coleção →</a>
             </div>
 
           </div>
@@ -508,14 +532,14 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
           <div>
             <a href="#top" className="flex items-center gap-2.5">
               <span className="relative w-8 h-8 pl-coin rounded-full flex items-center justify-center">
-                <span className="font-bold text-sm" style={{ color: INK_950 }}>P</span>
-              </span>
+              <img src="/logo.png" alt="Logo do Pataca" className="w-11 h-11 sm:w-20 sm:h-20 shrink-0 object-contain" />             
+               </span>
               <span className="text-xl font-bold">Pataca</span>
             </a>
             <p className="text-sm mt-4" style={{ color: MUTED }}>O lar digital da sua coleção de moedas.</p>
           </div>
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider" style={{ color: GOLD_LIGHT }}>Produto</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider" style={{ color: GOLD_LIGHT }}> </h4>
             <ul className="mt-4 space-y-2 text-sm" style={{ color: MUTED }}>
               {NAV.map((n) => <li key={n.href}><a href={n.href} className="transition hover:text-[#eebc3f]">{n.label}</a></li>)}
             </ul>
@@ -532,7 +556,7 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
         <div className="border-t" style={{ borderColor: INK_600 }}>
           <div className="max-w-7xl mx-auto px-5 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs" style={{ color: MUTED_DARK }}>
             <p>© 2026 Pataca v1.0.0 — Todos os direitos reservados.</p>
-            <p>Feito com ✦ para colecionadores de moedas.</p>
+            <p>Produção Exímia Digital</p>
           </div>
         </div>
       </footer>

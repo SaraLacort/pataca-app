@@ -237,7 +237,7 @@ const ownedCount = Object.values(userCoins).reduce((total, userCoin) => {
                   <img src={entry.avatar} alt="" />
                   <span className="web-profile-rank-name">
                     <strong>{entry.name}{entry.isMe ? ' (Você)' : ''}</strong>
-                    {entry.isDemo && <small>Demonstrativo</small>}
+                    {entry.isDemo && <small>Instagram não preenchido</small>}
                   </span>
                   <span className="web-profile-rank-count">{entry.coinsCount}<small> moedas</small></span>
                 </div>

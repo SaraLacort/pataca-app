@@ -121,7 +121,7 @@ const myOwnedCount = Object.values(userCoins).filter(
               <div style={{ flex: 1 }}>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: isMe ? 700 : 500, color: isMe ? '#D4AF37' : '#ffffff' }}>
                   {u.name} {isMe && '(Você)'}
-                  {u.isDemo && <span style={{ display: 'block', fontSize: 10, fontWeight: 400, color: '#8e8e93' }}>Demonstrativo</span>}
+                  {u.isDemo && <span style={{ display: 'block', fontSize: 10, fontWeight: 400, color: '#8e8e93' }}>Instagram não preenchido</span>}
                 </p>
               </div>
 

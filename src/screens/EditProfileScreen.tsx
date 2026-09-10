@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { UserCoin, UserProfile } from '../types'
 import { ALL_COINS } from '../data/coins'
 import AvatarPicker from '../components/AvatarPicker'
+import { supabase } from '../lib/supabaseClient'
 
 // Extrai a lista de países disponíveis das moedas cadastradas
 const ALL_COUNTRIES = Array.from(
@@ -55,8 +56,8 @@ export function EditProfileScreen({
   const [name, setName] = useState(currentProfile?.name || '')
   const [email, setEmail] = useState(currentProfile?.email || '')
   const [password, setPassword] = useState('')
-  const [instagram, setInstagram] = useState(currentProfile?.instagram || '')
-
+  const [instagram, setInstagram] = useState( currentProfile?.instagram ? `@${currentProfile.instagram.replace(/^@+/, '')}` : '',)
+  
   // ESTADOS PARA EXPANDIR / RECOLHER AS SEÇÕES
   const [isAvatarOpen, setIsAvatarOpen] = useState(false)
   const [isCountriesOpen, setIsCountriesOpen] = useState(false)
@@ -183,23 +184,30 @@ export function EditProfileScreen({
     )
   }
 
-  // Carrega a senha salva
-  useEffect(() => {
-    if (currentProfile?.email) {
-      try {
-        const usersData = JSON.parse(localStorage.getItem('@app_users') || '{}')
-        const existingUser = usersData[currentProfile.email.toLowerCase().trim()]
-        if (existingUser?.password) {
-          setPassword(existingUser.password)
-        }
-      } catch (err) {
-        console.error('Erro ao ler senha do usuário', err)
-      }
-    }
-  }, [currentProfile])
+const handleInstagramChange = (value: string) => {
+  if (!value) {
+    setInstagram('')
+    return
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const username = value.replace(/^@+/, '')
+  setInstagram(`@${username}`)
+}
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+ 
+    const instagramValue = instagram.trim()
+
+if (
+  instagramValue &&
+  !/^@[A-Za-z0-9._]{1,30}$/.test(instagramValue)
+) {
+  alert(
+    'O Instagram deve começar com @ e conter apenas letras, números, ponto ou sublinhado.',
+  )
+  return
+}
 
     const lowerOldEmail = currentProfile?.email?.toLowerCase().trim() || ''
     const lowerNewEmail = email.toLowerCase().trim()
@@ -215,11 +223,27 @@ export function EditProfileScreen({
       return
     }
 
+    if (password && password.length < 6) {
+  alert('A nova senha deve ter pelo menos 6 caracteres.')
+  return
+}
+
+if (password) {
+  const { error: passwordError } = await supabase.auth.updateUser({
+    password,
+  })
+
+  if (passwordError) {
+    alert(`Não foi possível alterar a senha: ${passwordError.message}`)
+    return
+  }
+}
+
     const updatedProfile: UserProfile = {
       name: name.trim(),
       email: lowerNewEmail,
       avatar: customAvatar,
-      instagram: instagram.trim().replace(/^@/, ''),
+      instagram: instagramValue.replace(/^@/, ''),
       selectedCountries: selectedCountries,
     }
 
@@ -234,11 +258,11 @@ export function EditProfileScreen({
       delete usersData[lowerOldEmail]
     }
 
-    usersData[lowerNewEmail] = {
-      ...usersData[lowerNewEmail],
-      ...updatedProfile,
-      password: password,
-    }
+      const localUser = {...usersData[lowerNewEmail],...updatedProfile, }
+
+delete localUser.password
+
+usersData[lowerNewEmail] = localUser
 
     localStorage.setItem('@app_users', JSON.stringify(usersData))
     localStorage.setItem('@app_session', JSON.stringify(updatedProfile))
@@ -435,14 +459,13 @@ export function EditProfileScreen({
         {/* Senha */}
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8e8e93', marginBottom: 6 }}>
-            Nova Senha
+            Nova senha (opcional)
           </label>
           <input
             type="password"
-            required
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder="Deixe vazio para não alterar"
             style={{
               width: '100%',
               padding: '12px 14px',
@@ -464,8 +487,12 @@ export function EditProfileScreen({
           <input
             type="text"
             value={instagram}
-            onChange={e => setInstagram(e.target.value)}
-            placeholder="usuario.instagram"
+            onChange={e => handleInstagramChange(e.target.value)}
+            placeholder="@usuario.instagram"
+            maxLength={31}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             style={{
               width: '100%',
               padding: '12px 14px',
