@@ -587,6 +587,69 @@ const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
     setShowLanding(true)
   }, [])
 
+  // Logout automático após 30 minutos sem atividade,
+// aplicado somente à versão web para desktop.
+useEffect(() => {
+  if (!isDesktop || !isLoggedIn) {
+    return
+  }
+
+  const inactivityLimit = 30 * 60 * 1000
+  const storageKey = '@pataca_last_activity'
+
+  let logoutTimer: number | undefined
+
+  const scheduleLogout = () => {
+    if (logoutTimer) {
+      window.clearTimeout(logoutTimer)
+    }
+
+    const savedActivity = Number(localStorage.getItem(storageKey))
+    const lastActivity = Number.isFinite(savedActivity)
+      ? savedActivity
+      : Date.now()
+
+    const elapsedTime = Date.now() - lastActivity
+    const remainingTime = inactivityLimit - elapsedTime
+
+    if (remainingTime <= 0) {
+      void handleLogout()
+      return
+    }
+
+    logoutTimer = window.setTimeout(() => {
+      void handleLogout()
+    }, remainingTime)
+  }
+
+  const registerActivity = () => {
+    localStorage.setItem(storageKey, String(Date.now()))
+    scheduleLogout()
+  }
+
+  if (!localStorage.getItem(storageKey)) {
+    localStorage.setItem(storageKey, String(Date.now()))
+  }
+
+  scheduleLogout()
+
+  const activityEvents = ['pointerdown', 'keydown'] as const
+
+  activityEvents.forEach(eventName => {
+    window.addEventListener(eventName, registerActivity)
+  })
+
+  return () => {
+    if (logoutTimer) {
+      window.clearTimeout(logoutTimer)
+    }
+
+    activityEvents.forEach(eventName => {
+      window.removeEventListener(eventName, registerActivity)
+    })
+  }
+}, [isDesktop, isLoggedIn, handleLogout])
+
 const handleReorderCountries = useCallback(
   async (countries: string[]) => {
     if (!userProfile) return
