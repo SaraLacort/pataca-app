@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react'; 
+import { useCoinImages } from '../contexts/CoinImagesContext'
 
 function getShortValue(value?: string | number): string {
   if (!value) return ''
@@ -10,6 +11,10 @@ function getShortValue(value?: string | number): string {
 function CoinVisual({ coin, size = 64, userStatus, isMissing, val, side, isReverse, showReverse, flip }: any) {
   const safeCoin = coin || {};
   const [imgError, setImgError] = useState(false);
+  const { images } = useCoinImages()
+  const storedImages = safeCoin.id
+  ? images[String(safeCoin.id)]
+  : undefined
 
   // Identifica se estamos visualizando o verso
   const isViewingReverse = 
@@ -21,15 +26,20 @@ function CoinVisual({ coin, size = 64, userStatus, isMissing, val, side, isRever
     flip === true;
 
   // Monta o caminho automático baseado no ID da moeda
-  const defaultAutoImage = safeCoin.id 
-    ? `/coins/${safeCoin.id}${isViewingReverse ? 'b' : 'a'}.png`
-    : null;
+const defaultAutoImage = safeCoin.id
+  ? `/coins/${safeCoin.id}${isViewingReverse ? 'b' : 'a'}.png`
+  : null
 
-  // Imagem que tentaremos carregar
-  const imageSrc = isViewingReverse 
-    ? (safeCoin.reverseImageUrl || safeCoin.reverseImg || defaultAutoImage)
-    : (safeCoin.obverseImageUrl || safeCoin.obverseImg || defaultAutoImage);
-
+const imageSrc = isViewingReverse
+  ? storedImages?.back ||
+    safeCoin.reverseImageUrl ||
+    safeCoin.reverseImg ||
+    defaultAutoImage
+  : storedImages?.front ||
+    safeCoin.obverseImageUrl ||
+    safeCoin.obverseImg ||
+    defaultAutoImage
+    
   // Reseta o erro ao mudar de moeda ou de lado (frente/verso)
   useEffect(() => {
     setImgError(false);

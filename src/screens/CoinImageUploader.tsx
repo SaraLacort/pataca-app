@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ALL_COINS } from '../data/coins'
+import { uploadCoinImage } from '../lib/coinImageStorage'
+import { useCoinImages } from '../contexts/CoinImagesContext'
 
 type CoinSide = 'front' | 'back'
 
@@ -28,9 +30,8 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-export async function createCircularPng(file: File): Promise<Blob> {
+export async function createCircularWebp(file: File): Promise<Blob> {
   const image = await loadImage(file)
-
   const canvas = document.createElement('canvas')
   canvas.width = OUTPUT_SIZE
   canvas.height = OUTPUT_SIZE
@@ -87,10 +88,11 @@ export async function createCircularPng(file: File): Promise<Blob> {
         if (blob) {
           resolve(blob)
         } else {
-          reject(new Error('Não foi possível gerar o arquivo PNG.'))
+          reject(new Error('Não foi possível gerar o arquivo webP.'))
         }
       },
-      'image/png',
+      'image/webp',
+      0.92,
     )
   })
 }
@@ -98,6 +100,7 @@ export async function createCircularPng(file: File): Promise<Blob> {
 export default function CoinImageUploader({
   onBack,
 }: CoinImageUploaderProps) {
+  const { refreshCoinImages } = useCoinImages()
   const [query, setQuery] = useState('')
   const [coinId, setCoinId] = useState('')
   const [side, setSide] = useState<CoinSide>('front')
@@ -106,6 +109,8 @@ export default function CoinImageUploader({
   const [processedBlob, setProcessedBlob] = useState<Blob | null>(null)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
 
   const filteredCoins = useMemo(() => {
     const search = query.trim().toLocaleLowerCase('pt-BR')
@@ -129,7 +134,7 @@ export default function CoinImageUploader({
   const selectedCoin = ALL_COINS.find(coin => coin.id === coinId)
 
   const outputName = selectedCoin
-    ? `${selectedCoin.id}${side === 'front' ? 'a' : 'b'}.png`
+    ? `${selectedCoin.id}${side === 'front' ? 'a' : 'b'}.webp`
     : ''
 
 useEffect(() => {
@@ -156,7 +161,7 @@ const processFile = async (file: File) => {
   setSourceFile(file)
 
   try {
-    const processedImage = await createCircularPng(file)
+    const processedImage = await createCircularWebp(file)
     const newPreviewUrl = URL.createObjectURL(processedImage)
     
 
@@ -176,31 +181,44 @@ const processFile = async (file: File) => {
   }
 }
 
-const downloadProcessedImage = () => {
+const saveProcessedImage = async () => {
   if (!selectedCoin) {
-    setError('Selecione uma moeda antes de baixar.')
+    setError('Selecione uma moeda antes de salvar.')
     return
   }
 
   if (!processedBlob) {
-    setError('Escolha e processe uma imagem antes de baixar.')
+    setError('Escolha e processe uma imagem antes de salvar.')
     return
   }
 
-  const downloadUrl = URL.createObjectURL(processedBlob)
-  const downloadLink = document.createElement('a')
+  setSaving(true)
+  setError('')
+  setSuccess('')
 
-  downloadLink.href = downloadUrl
-  downloadLink.download = outputName
-
-  document.body.appendChild(downloadLink)
-  downloadLink.click()
-  downloadLink.remove()
-
-  window.setTimeout(() => {
-    URL.revokeObjectURL(downloadUrl)
-  }, 0)
+  try {
+    await uploadCoinImage({
+      coinId: String(selectedCoin.id),
+      side,
+      image: processedBlob,
+    })
+     await refreshCoinImages()
+     
+    setSuccess(
+      `${side === 'front' ? 'Frente' : 'Verso'} da moeda salva no Supabase.`,
+    )
+  } catch (caughtError) {
+    setError(
+      caughtError instanceof Error
+        ? caughtError.message
+        : 'Não foi possível salvar a imagem.',
+    )
+  } finally {
+    setSaving(false)
+  }
 }
+
+
 
   return (
     <main
@@ -323,7 +341,7 @@ const downloadProcessedImage = () => {
               color: side === 'front' ? '#f1ce66' : '#c9c9d1',
             }}
           >
-            Frente — letra a
+            coroa — letra a
           </button>
 
           <button
@@ -338,7 +356,7 @@ const downloadProcessedImage = () => {
               color: side === 'back' ? '#f1ce66' : '#c9c9d1',
             }}
           >
-            Verso — letra b
+            Cara — letra b
           </button>
         </div>
 
@@ -413,6 +431,12 @@ const downloadProcessedImage = () => {
     </p>
   )}
 
+  {success && (
+  <p role="status" style={{ color: '#66d98b' }}>
+    {success}
+  </p>
+)}
+
   {previewUrl && (
     <div
       style={{
@@ -439,8 +463,8 @@ const downloadProcessedImage = () => {
 </div>
 <button
   type="button"
-  onClick={downloadProcessedImage}
-  disabled={!selectedCoin || !processedBlob || processing}
+  onClick={() => void saveProcessedImage()}
+  disabled={!selectedCoin || !processedBlob || processing || saving}
   style={{
     width: '100%',
     marginTop: 20,
@@ -448,22 +472,28 @@ const downloadProcessedImage = () => {
     border: 'none',
     borderRadius: 8,
     background:
-      !selectedCoin || !processedBlob || processing
+      !selectedCoin || !processedBlob || processing || saving
         ? '#4a4230'
         : '#d4af37',
     color: '#17130a',
     fontWeight: 800,
+    cursor:
+      !selectedCoin || !processedBlob || processing || saving
+        ? 'not-allowed'
+        : 'pointer',
     opacity:
-      !selectedCoin || !processedBlob || processing
+      !selectedCoin || !processedBlob || processing || saving
         ? 0.55
         : 1,
   }}
 >
   {processing
     ? 'Processando...'
-    : outputName
-      ? `Baixar ${outputName}`
-      : 'Selecione uma moeda'}
+    : saving
+      ? 'Salvando no Supabase...'
+      : selectedCoin
+        ? `Salvar ${side === 'front' ? 'frente' : 'verso'}`
+        : 'Selecione uma moeda'}
 </button>
         <p
           style={{
