@@ -310,7 +310,6 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
               </div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-semibold">Minhas coleções</p>
-                <a href="#colecoes" className="text-xs transition" style={{ color: GOLD_LIGHT }}>Abrir coleções →</a>
               </div>
               <div className="space-y-2 text-sm">
                 {[["Reino Unido", "28 no catálogo", 78], ["Brasil", "50 de 299", 17]].map(([pais, info, pct]) => (
