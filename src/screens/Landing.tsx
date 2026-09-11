@@ -548,7 +548,6 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
             <ul className="mt-4 space-y-2 text-sm" style={{ color: MUTED }}>
               <li><button type="button" onClick={onLogin} className="transition hover:text-[#eebc3f]">Entrar</button></li>
               <li><a href="#cadastro" className="transition hover:text-[#eebc3f]">Criar conta</a></li>
-              <li><a href="#faq" className="transition hover:text-[#eebc3f]">Perguntas frequentes</a></li>
             </ul>
           </div>
         </div>
