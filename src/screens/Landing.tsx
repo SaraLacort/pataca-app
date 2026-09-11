@@ -278,8 +278,7 @@ export default function PatacaLanding({ onLogin, onAuthenticated }: PatacaLandin
     <button
       type="button"
       onClick={onLogin}
-      className="hidden sm:inline px-3 py-2 text-sm font-semibold"
-      style={{ color: '#fff' }}
+      className="inline-flex items-center justify-center whitespace-nowrap px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold"      style={{ color: '#fff' }}
     >
       Entrar
     </button>
