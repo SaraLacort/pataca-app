@@ -525,7 +525,6 @@ const handleUpdateStatus = useCallback(
 // Login bem-sucedido
 const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
   setIsEnteringApp(true)
-  setUserProfile(profile)
   setActiveTab('home')
   setTabHistory(['home'])
   setShowLanding(false)
@@ -538,27 +537,86 @@ const handleLoginSuccess = useCallback(async (profile: UserProfile) => {
     const userId = session?.user?.id
 
     if (!userId) {
-      setUserCoins({})
-      return
+      throw new Error('Sessão não encontrada após o login.')
     }
 
-    const { data } = await supabase
-      .from('user_coins')
-      .select('coins')
-      .eq('user_id', userId)
-      .single()
+    const [
+      { data: profileData, error: profileError },
+      { data: coinsData, error: coinsError },
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select(
+          'name, email, avatar, instagram, selected_countries',
+        )
+        .eq('id', userId)
+        .maybeSingle(),
 
-    if (data?.coins) {
-      setUserCoins(data.coins)
+      supabase
+        .from('user_coins')
+        .select('coins')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ])
+
+    if (profileError) {
+      throw profileError
+    }
+
+    if (coinsError) {
+      throw coinsError
+    }
+
+    const completeProfile: UserProfile = {
+      name:
+        profileData?.name ||
+        profile.name ||
+        session.user.user_metadata?.full_name ||
+        'Colecionador',
+      email:
+        profileData?.email ||
+        session.user.email ||
+        profile.email,
+      avatar:
+        profileData?.avatar ||
+        profile.avatar ||
+        '/avatars/avatar-01.png',
+      instagram:
+        profileData?.instagram ||
+        profile.instagram ||
+        '',
+      selectedCountries:
+        Array.isArray(profileData?.selected_countries) &&
+        profileData.selected_countries.length > 0
+          ? profileData.selected_countries
+          : profile.selectedCountries?.length
+            ? profile.selectedCountries
+            : ['Brasil'],
+    }
+
+    setUserProfile(completeProfile)
+    localStorage.setItem(
+      '@app_session',
+      JSON.stringify(completeProfile),
+    )
+
+    if (coinsData?.coins) {
+      setUserCoins(coinsData.coins)
+      userCoinsRef.current = coinsData.coins
     } else {
       await supabase
         .from('user_coins')
-        .insert([{ user_id: userId, coins: {} }])
+        .insert({
+          user_id: userId,
+          coins: {},
+        })
 
       setUserCoins({})
+      userCoinsRef.current = {}
     }
-  } catch (err) {
-    console.error('Erro ao carregar moedas:', err)
+  } catch (error) {
+    console.error('Erro ao carregar a conta:', error)
+    setUserProfile(profile)
     setUserCoins({})
   } finally {
     setIsLoggedIn(true)
